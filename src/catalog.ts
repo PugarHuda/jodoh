@@ -1,6 +1,9 @@
-// The pool of agents Jodoh matches against. In production this is fetched live
-// from the CROO Agent Store; here we also ship a seeded snapshot so the matcher
-// runs and demos offline. The seed is real agents observed on the Store.
+// The pool of agents Jodoh matches against.
+//
+// NOTE: the CROO SDK has NO agent/service discovery API (only listNegotiations /
+// listOrders). That gap is exactly why Jodoh exists. So the catalog is a curated
+// snapshot of real Store agents by default; set CROO_CATALOG_URL to a JSON feed
+// to override with live data (and real serviceIds for facilitation).
 
 export interface AgentEntry {
   id: string;
@@ -10,9 +13,10 @@ export interface AgentEntry {
   priceFrom: number; // USDC per call
   completion: number; // % completed orders (reputation)
   orders: number; // total orders (reputation)
+  serviceId?: string; // real CROO serviceId; required to actually hire (facilitate)
 }
 
-// ponytail: seeded snapshot; fetchCatalog() replaces it with live Store data.
+// ponytail: curated snapshot; a CROO_CATALOG_URL feed replaces it with live data.
 export const SEED_CATALOG: AgentEntry[] = [
   {
     id: "polymarket-tracker",
@@ -116,21 +120,17 @@ export const SEED_CATALOG: AgentEntry[] = [
 ];
 
 /**
- * Fetch the live Store catalog. Falls back to the seed if unavailable so the
- * agent never hard-fails.
- * TODO(sdk): confirm the Store catalog endpoint + response shape, then map it
- * onto AgentEntry. Excludes Jodoh itself from results by id.
+ * Return the catalog to match against. Defaults to the curated seed (the SDK has
+ * no discovery API); if CROO_CATALOG_URL is set, fetch a live JSON feed instead.
+ * Never hard-fails — falls back to the seed on any error. Excludes Jodoh itself.
  */
-export async function fetchCatalog(
-  apiUrl: string | undefined,
-  selfId?: string,
-): Promise<AgentEntry[]> {
-  if (!apiUrl) return SEED_CATALOG;
+export async function fetchCatalog(selfId?: string): Promise<AgentEntry[]> {
+  const url = process.env.CROO_CATALOG_URL;
+  const seed = SEED_CATALOG.filter((a) => a.id !== selfId);
+  if (!url) return seed;
   try {
-    const res = await fetch(`${apiUrl}/agents?status=online`, {
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!res.ok) return SEED_CATALOG;
+    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) return seed;
     const raw: any = await res.json();
     const list: any[] = Array.isArray(raw) ? raw : (raw.agents ?? raw.data ?? []);
     const mapped: AgentEntry[] = list.map((a) => ({
@@ -141,10 +141,11 @@ export async function fetchCatalog(
       priceFrom: Number(a.price_from ?? a.priceFrom ?? 0.1),
       completion: Number(a.completion ?? a.completion_rate ?? 100),
       orders: Number(a.orders ?? a.total_orders ?? 0),
+      serviceId: a.service_id ?? a.serviceId,
     }));
     const clean = mapped.filter((a) => a.id && a.id !== selfId);
-    return clean.length ? clean : SEED_CATALOG;
+    return clean.length ? clean : seed;
   } catch {
-    return SEED_CATALOG;
+    return seed;
   }
 }

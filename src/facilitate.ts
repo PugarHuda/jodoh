@@ -2,14 +2,14 @@ import type { Match } from "./match.js";
 
 // Facilitation is Jodoh's wedge over plain discovery: it doesn't just recommend
 // a match — it HIRES the matched agent on the buyer's behalf and returns the
-// result, taking a rake. Doing so makes Jodoh a real buyer of other agents,
-// which is exactly the A2A composability the hackathon rewards.
+// result, taking a rake. This makes Jodoh a real buyer of other agents, which is
+// exactly the A2A composability the hackathon rewards.
 //
-// TODO(sdk): confirm negotiate/pay/getDelivery signatures + the service-input
-// and delivery field names for a downstream order. Guarded so a failure here
-// degrades to "recommendation only" instead of crashing the match.
+// Requires a real CROO serviceId on the matched agent (from a live CROO_CATALOG_URL
+// feed). Seed entries have none, so facilitation degrades to recommendation-only.
 
 const RAKE_RATE = 0.15; // Jodoh keeps 15% of the sub-order price as its fee.
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export interface Facilitation {
   agentId: string;
@@ -23,20 +23,35 @@ export async function facilitate(
   top: Match,
   input: string,
 ): Promise<Facilitation | undefined> {
+  const serviceId = top.agent.serviceId;
+  if (!serviceId) return undefined; // can't hire without a real serviceId
+
   try {
-    // 1) Negotiate an order with the matched provider's default service.
-    const neg = await client.negotiateOrder(top.agent.id, { input });
-    const negotiationId = neg?.negotiation_id ?? neg?.id;
+    // 1) Negotiate an order with the matched provider.
+    const neg = await client.negotiateOrder({
+      serviceId,
+      requirements: JSON.stringify({ need: input }),
+    });
+    // The provider accepts on its side, creating the order. Its id may come back
+    // on the negotiation result or on the order object.
+    const orderId =
+      neg?.order?.orderId ?? neg?.order?.order_id ?? neg?.order_id ?? neg?.orderId;
+    if (!orderId) return undefined;
 
-    // 2) Pay into escrow (USDC on Base). Gas is sponsored by CROO.
-    const order = await client.payOrder(neg?.order_id ?? negotiationId);
-    const orderId = order?.order_id ?? order?.id ?? negotiationId;
+    // 2) Pay into escrow (USDC on Base; gas sponsored by CROO).
+    await client.payOrder(orderId);
 
-    // 3) Read the delivered result once cleared.
-    const delivery = await client.getDelivery(orderId);
-    const deliverable = String(
-      delivery?.deliverable_text ?? delivery?.text ?? JSON.stringify(delivery),
-    );
+    // 3) Poll for the delivered result.
+    let deliverable = "";
+    for (let i = 0; i < 10; i++) {
+      const d = await client.getDelivery(orderId).catch(() => null);
+      if (d?.deliverableText) {
+        deliverable = String(d.deliverableText);
+        break;
+      }
+      await sleep(2000);
+    }
+    if (!deliverable) return undefined;
 
     const rake = +(top.agent.priceFrom * RAKE_RATE).toFixed(4);
     return { agentId: top.agent.id, orderId: String(orderId), rake, deliverable };

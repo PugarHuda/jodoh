@@ -80,24 +80,27 @@ report; without it, Jodoh returns recommendations only.
 Package: **`@croo-network/sdk`**. All wiring is in `src/agent.ts` and
 `src/facilitate.ts`; the matching engine is SDK-independent and unit-tested.
 
-**SDK surface used**
+**SDK surface used** (wired to the official `@croo-network/sdk` examples)
 
 | Symbol | Where | Purpose |
 |---|---|---|
-| `new AgentClient(config, sdkKey)` | init | provider client (`CROO_API_URL`, `CROO_WS_URL`, `CROO_SDK_KEY`) |
-| `EventType.NegotiationCreated` | subscribe | incoming hire request |
-| `EventType.OrderPaid` | subscribe | escrow funded → run the match |
-| `acceptNegotiation(id)` / `rejectNegotiation(id, reason)` | handler | agree / decline |
-| `deliverOrder(orderId, { deliverable_text, deliverable_json })` | handler | submit the match report; Clear settles USDC |
-| `negotiateOrder(agentId, input)` · `payOrder(orderId)` · `getDelivery(orderId)` | facilitate | **hire the matched agent** (this is the A2A leg) |
+| `new AgentClient({ baseURL, wsURL, rpcURL }, sdkKey)` | init | provider client (`CROO_API_URL`, `CROO_WS_URL`, `CROO_SDK_KEY`) |
+| `await client.connectWebSocket()` | init | obtain the event stream |
+| `EventType.NegotiationCreated` / `EventType.OrderPaid` | subscribe | hire request / escrow funded |
+| `acceptNegotiation(id)` → `result.order.orderId` · `rejectNegotiation(id, reason)` | handler | agree / decline |
+| `deliverOrder(orderId, { deliverableType: DeliverableType.Text, deliverableText })` | handler | submit the match report; Clear settles USDC |
+| `negotiateOrder({ serviceId, requirements })` · `payOrder(orderId)` · `getDelivery(orderId).deliverableText` | facilitate | **hire the matched agent** (the A2A leg) |
+
+Buyer input arrives as a JSON string in the `requirements` field, e.g.
+`'{"need":"...","facilitate":true}'`.
 
 **Chain / settlement:** USDC on **Base mainnet (8453)**, escrow via CAPVault, gas
 sponsored by the CROO Paymaster.
 
-**`TODO(sdk)` markers** flag what to confirm against the live SDK: how the event
-stream is obtained, the order/negotiation payload field names, the Store catalog
-endpoint (`src/catalog.ts` falls back to a seeded snapshot until confirmed), and
-the downstream negotiate/pay/getDelivery field shapes. The matcher runs today.
+**Discovery note:** the SDK has **no** agent/service listing API (only
+`listNegotiations` / `listOrders`) — which is why Jodoh exists. The catalog is a
+curated snapshot by default; set `CROO_CATALOG_URL` to a live feed (with real
+`serviceId`s) to enable live matching + facilitation.
 
 ---
 
