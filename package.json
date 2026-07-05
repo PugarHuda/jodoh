@@ -9,10 +9,11 @@
     "dev": "tsx watch src/agent.ts",
     "match": "tsx src/cli.ts",
     "demo": "tsx src/demo.ts",
+    "buyer": "tsx examples/requester.ts",
     "test": "tsx test/match.test.ts"
   },
   "dependencies": {
-    "@croo-network/sdk": "^1.0.0",
+    "@croo-network/sdk": "^0.2.1",
     "dotenv": "^16.4.5"
   },
   "devDependencies": {
