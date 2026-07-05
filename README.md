@@ -98,9 +98,11 @@ Buyer input arrives as a JSON string in the `requirements` field, e.g.
 sponsored by the CROO Paymaster.
 
 **Discovery note:** the SDK has **no** agent/service listing API (only
-`listNegotiations` / `listOrders`) — which is why Jodoh exists. The catalog is a
-curated snapshot by default; set `CROO_CATALOG_URL` to a live feed (with real
-`serviceId`s) to enable live matching + facilitation.
+`listNegotiations` / `listOrders`) — which is why Jodoh exists. Jodoh matches
+against the **live Store catalog** via the public read API
+(`/backend/v1/public/services` + `/agents`, paginated, cached 60s) — 160+ real
+services with real `serviceId`s, so facilitation hires real agents. Falls back to
+a curated seed offline. Override the base with `CROO_PUBLIC_API`.
 
 ---
 

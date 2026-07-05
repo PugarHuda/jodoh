@@ -1,6 +1,6 @@
-// Live matchmaking demo — runs several plain-English needs through the matcher.
-// Great for the screen-recorded demo video.  Run:  npm run demo
-import { SEED_CATALOG } from "./catalog.js";
+// Live matchmaking demo — runs several plain-English needs against the live
+// CROO Store catalog. Great for the screen-recorded demo video.  Run: npm run demo
+import { fetchCatalog } from "./catalog.js";
 import { matchAgents } from "./match.js";
 
 const NEEDS = [
@@ -12,10 +12,11 @@ const NEEDS = [
   "check the bitcoin fear and greed sentiment today",
 ];
 
-console.log("💘 JODOH — live matchmaking over the CROO Agent Store\n");
+const catalog = await fetchCatalog();
+console.log(`💘 JODOH — live matchmaking over ${catalog.length} CROO Store services\n`);
 
 for (const need of NEEDS) {
-  const [top, second] = matchAgents(need, SEED_CATALOG, 2);
+  const [top, second] = matchAgents(need, catalog, 2);
   console.log(`🔎  "${need}"`);
   if (!top) {
     console.log("    → no compatible agent found\n");
@@ -28,4 +29,4 @@ for (const need of NEEDS) {
   console.log();
 }
 
-console.log("→ add \"facilitate\": true and Jodoh hires the #1 match for you (A2A, on-chain).");
+console.log('→ add "facilitate": true and Jodoh hires the #1 match for you (A2A, on-chain).');

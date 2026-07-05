@@ -119,33 +119,81 @@ export const SEED_CATALOG: AgentEntry[] = [
   },
 ];
 
+// The SDK has no discovery API, but the Store exposes a public read API. Jodoh
+// matches against real live services (each with a real serviceId, so facilitation
+// can actually hire them).
+const PUBLIC_API =
+  process.env.CROO_PUBLIC_API || "https://api.croo.network/backend/v1/public";
+const PAGE_SIZE = 50; // server caps pageSize at 50
+const CACHE_TTL_MS = 60_000;
+
+let cache: { at: number; data: AgentEntry[] } | null = null;
+
+// Walk paginated pages until a short page (or the safety cap) is hit.
+async function fetchAll(path: string, key: string): Promise<any[]> {
+  const out: any[] = [];
+  for (let page = 1; page <= 40; page++) {
+    const res = await fetch(`${PUBLIC_API}/${path}?pageSize=${PAGE_SIZE}&page=${page}`, {
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!res.ok) break;
+    const arr: any[] = ((await res.json()) as any)[key] ?? [];
+    out.push(...arr);
+    if (arr.length < PAGE_SIZE) break;
+  }
+  return out;
+}
+
 /**
- * Return the catalog to match against. Defaults to the curated seed (the SDK has
- * no discovery API); if CROO_CATALOG_URL is set, fetch a live JSON feed instead.
- * Never hard-fails — falls back to the seed on any error. Excludes Jodoh itself.
+ * Fetch the live Store catalog: all /public/services joined with /public/agents
+ * for reputation. Each entry carries a real serviceId (hireable). Skips
+ * fund-transfer services (swaps/bridges Jodoh can't cleanly facilitate) and Jodoh
+ * itself. Cached 60s. Never hard-fails — falls back to the curated seed on error.
  */
-export async function fetchCatalog(selfId?: string): Promise<AgentEntry[]> {
-  const url = process.env.CROO_CATALOG_URL;
-  const seed = SEED_CATALOG.filter((a) => a.id !== selfId);
-  if (!url) return seed;
+export async function fetchCatalog(selfServiceId?: string): Promise<AgentEntry[]> {
+  if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
+    return cache.data.filter((e) => e.serviceId !== selfServiceId);
+  }
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
-    if (!res.ok) return seed;
-    const raw: any = await res.json();
-    const list: any[] = Array.isArray(raw) ? raw : (raw.agents ?? raw.data ?? []);
-    const mapped: AgentEntry[] = list.map((a) => ({
-      id: String(a.id ?? a.agent_id ?? a.slug),
-      name: String(a.name ?? a.title ?? "unknown"),
-      description: String(a.description ?? a.summary ?? ""),
-      tags: Array.isArray(a.tags) ? a.tags.map(String) : [],
-      priceFrom: Number(a.price_from ?? a.priceFrom ?? 0.1),
-      completion: Number(a.completion ?? a.completion_rate ?? 100),
-      orders: Number(a.orders ?? a.total_orders ?? 0),
-      serviceId: a.service_id ?? a.serviceId,
-    }));
-    const clean = mapped.filter((a) => a.id && a.id !== selfId);
-    return clean.length ? clean : seed;
+    const [services, agents] = await Promise.all([
+      fetchAll("services", "items"),
+      fetchAll("agents", "agents"),
+    ]);
+    if (!services.length) return SEED_CATALOG;
+    const byAgent = new Map<string, any>(agents.map((a) => [a.agentId, a]));
+
+    const entries: AgentEntry[] = [];
+    for (const s of services) {
+      if (!s.serviceId) continue;
+      let fundTransfer = false;
+      try {
+        fundTransfer = !!JSON.parse(s.feeConfig ?? "{}").fund_transfer_required;
+      } catch {
+        /* treat unparseable feeConfig as flat-fee */
+      }
+      if (fundTransfer) continue;
+
+      const a = byAgent.get(s.agentId) ?? {};
+      // Skill slugs like "data-analytics" -> ["data","analytics"] so they match
+      // single-word needs.
+      const tags: string[] = (a.skillTagSlugs ?? []).flatMap((t: string) =>
+        String(t).split(/[^a-z0-9]+/i).filter(Boolean),
+      );
+      entries.push({
+        id: s.serviceId,
+        name: a.name ? `${a.name} — ${s.name}` : String(s.name ?? "service"),
+        description: String(s.description ?? ""),
+        tags,
+        priceFrom: Number(s.price ?? 0) / 1e6,
+        completion: Number(a.completionRate ?? 0),
+        orders: Number(s.orders7d ?? a.completedOrders ?? 0),
+        serviceId: s.serviceId,
+      });
+    }
+    if (!entries.length) return SEED_CATALOG;
+    cache = { at: Date.now(), data: entries };
+    return entries.filter((e) => e.serviceId !== selfServiceId);
   } catch {
-    return seed;
+    return SEED_CATALOG;
   }
 }
