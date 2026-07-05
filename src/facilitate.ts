@@ -13,6 +13,10 @@ import type { Match } from "./match.js";
 // recommendation-only.
 
 const RAKE_RATE = 0.15; // Jodoh keeps 15% of the sub-order price as its fee.
+// Safety cap: Jodoh funds the sub-order from its own wallet on a flat-fee model,
+// so bound the spend. Sustainable paid facilitation needs a require_fund_transfer
+// service where the buyer supplies the principal (see README).
+const MAX_HIRE_USDC = 0.25;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export interface Facilitation {
@@ -29,6 +33,8 @@ export async function facilitate(
 ): Promise<Facilitation | undefined> {
   const serviceId = top.agent.serviceId;
   if (!serviceId) return undefined; // can't hire without a real serviceId
+  if (top.agent.fundTransfer) return undefined; // can't move the buyer's principal
+  if (top.agent.priceFrom > MAX_HIRE_USDC) return undefined; // over the spend cap
 
   try {
     // 1) Negotiate. Returns a Negotiation; the order is created only once the

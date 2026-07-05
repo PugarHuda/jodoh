@@ -103,6 +103,11 @@ sponsored by the CROO Paymaster.
 WebSocket connects against the production backend (auth ✓, WS ✓). Once a service
 is listed, the provider accepts orders.
 
+**Facilitation economics:** on a flat-fee service Jodoh funds sub-order hires from
+its own wallet, so facilitation skips fund-transfer services and caps spend
+(`MAX_HIRE_USDC`). Sustainable paid facilitation lists Jodoh as a
+`require_fund_transfer` service so the buyer supplies the principal for the hire.
+
 **Discovery note:** the SDK has **no** agent/service listing API (only
 `listNegotiations` / `listOrders`) — which is why Jodoh exists. Jodoh matches
 against the **live Store catalog** via the public read API

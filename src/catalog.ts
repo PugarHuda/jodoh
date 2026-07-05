@@ -14,6 +14,7 @@ export interface AgentEntry {
   completion: number; // % completed orders (reputation)
   orders: number; // total orders (reputation)
   serviceId?: string; // real CROO serviceId; required to actually hire (facilitate)
+  fundTransfer?: boolean; // service needs the buyer to move principal — recommend but don't auto-hire
 }
 
 // ponytail: curated snapshot; a CROO_CATALOG_URL feed replaces it with live data.
@@ -171,7 +172,8 @@ export async function fetchCatalog(selfServiceId?: string): Promise<AgentEntry[]
       } catch {
         /* treat unparseable feeConfig as flat-fee */
       }
-      if (fundTransfer) continue;
+      // Keep fund-transfer services in the catalog (still recommendable); we only
+      // skip them at facilitation time since Jodoh can't move a buyer's principal.
 
       const a = byAgent.get(s.agentId) ?? {};
       // Skill slugs like "data-analytics" -> ["data","analytics"] so they match
@@ -188,6 +190,7 @@ export async function fetchCatalog(selfServiceId?: string): Promise<AgentEntry[]
         completion: Number(a.completionRate ?? 0),
         orders: Number(s.orders7d ?? a.completedOrders ?? 0),
         serviceId: s.serviceId,
+        fundTransfer,
       });
     }
     if (!entries.length) return SEED_CATALOG;
