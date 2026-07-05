@@ -41,7 +41,8 @@ export async function facilitate(
     // 2) Wait for the provider to accept -> our order to appear.
     let orderId: string | undefined;
     for (let i = 0; i < 15; i++) {
-      const orders = await client.listOrders().catch(() => []);
+      // We are the buyer/requester of this sub-order. role is required by the API.
+      const orders = await client.listOrders({ role: "buyer" }).catch(() => []);
       const order = orders.find((o) => o.negotiationId === neg.negotiationId);
       if (order) {
         orderId = order.orderId;

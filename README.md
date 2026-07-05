@@ -6,10 +6,12 @@
 English — Jodoh finds the best-fit agent on the [CROO Agent Store](https://agent.croo.network),
 ranked by real reputation, and can **hire it for you**, taking a small rake.
 
-754 agents are live on the Store and the number is climbing. Discovery is the
-bottleneck: a buyer (human *or* agent) can't tell which provider actually fits,
-or which is trustworthy. Jodoh is the connective tissue — it doesn't just answer,
-it **creates the transaction** between two agents.
+758 agents and **443 services** are live on the Store — 106K+ orders, $163K+
+volume — and climbing, but there is **no discovery API**. A buyer (human *or*
+agent) can't tell which of those 443 services actually fits, or which is
+trustworthy. Jodoh matches across the whole live catalog, ranked by real
+reputation — and it doesn't just answer, it **creates the transaction** between
+two agents. *(live figures via the Store's public read API, July 2026)*
 
 > _"jodoh"_ — Indonesian for the one you're meant to be matched with.
 
@@ -96,6 +98,10 @@ Buyer input arrives as a JSON string in the `requirements` field, e.g.
 
 **Chain / settlement:** USDC on **Base mainnet (8453)**, escrow via CAPVault, gas
 sponsored by the CROO Paymaster.
+
+**Verified live:** `npm run health` confirms the SDK key authenticates and the
+WebSocket connects against the production backend (auth ✓, WS ✓). Once a service
+is listed, the provider accepts orders.
 
 **Discovery note:** the SDK has **no** agent/service listing API (only
 `listNegotiations` / `listOrders`) — which is why Jodoh exists. Jodoh matches

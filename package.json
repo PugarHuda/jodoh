@@ -10,6 +10,7 @@
     "match": "tsx src/cli.ts",
     "demo": "tsx src/demo.ts",
     "buyer": "tsx examples/requester.ts",
+    "health": "tsx examples/healthcheck.ts",
     "test": "tsx test/match.test.ts"
   },
   "dependencies": {
