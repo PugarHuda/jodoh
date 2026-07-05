@@ -186,7 +186,7 @@ export async function fetchCatalog(selfServiceId?: string): Promise<AgentEntry[]
         name: a.name ? `${a.name} — ${s.name}` : String(s.name ?? "service"),
         description: String(s.description ?? ""),
         tags,
-        priceFrom: Number(s.price ?? 0) / 1e6,
+        priceFrom: Number(s.price ?? 0) / 1e6 || 0,
         completion: Number(a.completionRate ?? 0),
         orders: Number(s.orders7d ?? a.completedOrders ?? 0),
         serviceId: s.serviceId,
