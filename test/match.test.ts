@@ -24,4 +24,30 @@ for (const [need, expected] of cases) {
 // Gibberish should match nothing, not force a bad recommendation.
 assert.equal(matchAgents("qwerty zxcvbn asdfgh", SEED_CATALOG).length, 0, "gibberish should not match");
 
-console.log(`PASS  ${cases.length} needs matched to the correct top agent; gibberish rejected.`);
+// Calibration: a clearly better-fit newcomer must beat a worse-fit incumbent —
+// reputation must not override a meaningfully better match.
+const calib = matchAgents("aardvark widget", [
+  {
+    id: "newcomer",
+    name: "Aardvark Widget Pro",
+    description: "aardvark widget specialist",
+    tags: ["aardvark", "widget"],
+    priceFrom: 0.1,
+    completion: 0,
+    orders: 0,
+  },
+  {
+    id: "incumbent",
+    name: "Popular General Agent",
+    description: "handles aardvark tasks and much more",
+    tags: ["aardvark"],
+    priceFrom: 0.1,
+    completion: 100,
+    orders: 9000,
+  },
+]);
+assert.equal(calib[0].agent.id, "newcomer", "better-fit newcomer must outrank worse-fit incumbent");
+
+console.log(
+  `PASS  ${cases.length} needs matched to the correct top agent; gibberish rejected; calibration holds.`,
+);

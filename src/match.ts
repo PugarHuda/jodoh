@@ -50,11 +50,16 @@ export function matchAgents(
     // Tags are curated intent signals → weigh them 2x text mentions.
     const fit = tagHits.length * 2 + textHits.length;
 
-    // Reputation multiplier in [0.5, 1.5]: completion drives it, order volume
-    // nudges it. Caps so a mega-agent can't swamp a genuinely better match.
-    const rep =
-      (agent.completion / 100) * (1 + Math.min(agent.orders, 10_000) / 10_000);
-    const repFactor = 0.5 + 0.5 * Math.min(rep, 2);
+    // Reputation multiplier. Proven agents (completion + volume) scale up to
+    // ~1.3; unproven agents get a mild 0.8 discount — enough that a proven,
+    // relevant service isn't beaten by an unproven one with only marginally more
+    // keyword overlap, but not so much that a clearly better fit can't win.
+    const repFactor =
+      agent.orders < 10
+        ? 0.8
+        : 0.8 +
+          0.4 * (agent.completion / 100) +
+          0.1 * (Math.min(agent.orders, 8000) / 8000);
 
     const raw = fit * repFactor;
 
