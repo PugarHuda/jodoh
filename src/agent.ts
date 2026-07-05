@@ -1,11 +1,12 @@
 // CAP provider: turns Jodoh into a paid, callable matchmaking agent.
 //
-// Lifecycle (CROO Agent Protocol), wired to the official @croo-network/sdk shapes:
-//   NegotiationCreated -> acceptNegotiation, stash the buyer's need by order id
+// Lifecycle (CROO Agent Protocol), wired to the installed @croo-network/sdk types:
+//   NegotiationCreated -> getNegotiation (for requirements) -> acceptNegotiation
 //   OrderPaid          -> match -> (optional) hire best match -> deliverOrder
 //
-// The matching engine (src/match.ts, src/catalog.ts) is SDK-independent and
-// unit-tested. This adapter mirrors examples/provider.ts from the CROO node-sdk.
+// The buyer's input lives on the Negotiation object (event carries only ids), so
+// we fetch it with getNegotiation. The matching engine (src/match.ts,
+// src/catalog.ts) is SDK-independent and unit-tested.
 import "dotenv/config";
 import { AgentClient, EventType, DeliverableType } from "@croo-network/sdk";
 import { fetchCatalog } from "./catalog.js";
@@ -35,15 +36,15 @@ interface Req {
   facilitate?: boolean;
 }
 
-// Buyer sends a JSON string in `requirements`, e.g. '{"need":"...","facilitate":true}'.
-function parseReq(e: any): Req {
-  const raw = e?.requirements ?? e?.payload ?? "";
-  if (typeof raw === "object") return { need: raw.need ?? raw.query, facilitate: !!raw.facilitate };
+// Requirements is a string on the Negotiation — usually JSON, but accept a bare
+// string as the need too.
+function parseReq(requirements: string | undefined): Req {
+  if (!requirements) return {};
   try {
-    const p = JSON.parse(raw);
+    const p = JSON.parse(requirements);
     return { need: p.need ?? p.query ?? p.input, facilitate: !!p.facilitate };
   } catch {
-    return { need: typeof raw === "string" && raw.trim() ? raw : undefined };
+    return { need: requirements.trim() || undefined };
   }
 }
 
@@ -53,41 +54,57 @@ const pending = new Map<string, Req>();
 
 const stream = await client.connectWebSocket();
 
-stream.on(EventType.NegotiationCreated, async (e: any) => {
-  const req = parseReq(e);
-  if (!req.need) {
-    await client.rejectNegotiation(e.negotiation_id, "missing 'need' in requirements");
-    return;
+stream.on(EventType.NegotiationCreated, async (e) => {
+  try {
+    const negId = e.negotiation_id!;
+    const neg = await client.getNegotiation(negId);
+    const req = parseReq(neg.requirements);
+    if (!req.need) {
+      await client.rejectNegotiation(negId, "missing 'need' in requirements");
+      return;
+    }
+    const res = await client.acceptNegotiation(negId);
+    pending.set(res.order.orderId, req);
+    console.log(`accepted negotiation ${negId} -> order ${res.order.orderId}`);
+  } catch (err) {
+    console.error("negotiation handler error:", err);
   }
-  const res: any = await client.acceptNegotiation(e.negotiation_id);
-  const orderId = res?.order?.orderId ?? res?.order?.order_id;
-  if (orderId) pending.set(String(orderId), req);
-  console.log(`accepted negotiation ${e.negotiation_id} -> order ${orderId}`);
 });
 
-stream.on(EventType.OrderPaid, async (e: any) => {
-  const req = pending.get(String(e.order_id)) ?? parseReq(e);
-  if (!req.need) return;
-  console.log(`order ${e.order_id} paid — matching: "${req.need}"`);
+stream.on(EventType.OrderPaid, async (e) => {
+  try {
+    const orderId = e.order_id!;
+    let req = pending.get(orderId);
+    if (!req) {
+      // Recover if we missed the negotiation (e.g. restart): order -> negotiation.
+      const order = await client.getOrder(orderId);
+      const neg = await client.getNegotiation(order.negotiationId);
+      req = parseReq(neg.requirements);
+    }
+    if (!req.need) return;
+    console.log(`order ${orderId} paid — matching: "${req.need}"`);
 
-  const catalog = await fetchCatalog(SELF_ID);
-  const matches = matchAgents(req.need, catalog);
-  const result: JodohResult = { need: req.need, matches };
+    const catalog = await fetchCatalog(SELF_ID);
+    const matches = matchAgents(req.need, catalog);
+    const result: JodohResult = { need: req.need, matches };
 
-  if (req.facilitate && matches.length) {
-    const f = await facilitate(client, matches[0], req.need);
-    if (f) result.facilitated = f;
+    if (req.facilitate && matches.length) {
+      const f = await facilitate(client, matches[0], req.need);
+      if (f) result.facilitated = f;
+    }
+
+    await client.deliverOrder(orderId, {
+      deliverableType: DeliverableType.Text,
+      deliverableText: renderMarkdown(result),
+    });
+    pending.delete(orderId);
+    console.log(
+      `delivered order ${orderId} — ${matches.length} matches` +
+        (result.facilitated ? `, hired ${result.facilitated.agentId}` : ""),
+    );
+  } catch (err) {
+    console.error("orderPaid handler error:", err);
   }
-
-  await client.deliverOrder(e.order_id, {
-    deliverableType: DeliverableType.Text,
-    deliverableText: renderMarkdown(result),
-  });
-  pending.delete(String(e.order_id));
-  console.log(
-    `delivered order ${e.order_id} — ${matches.length} matches` +
-      (result.facilitated ? `, hired ${result.facilitated.agentId}` : ""),
-  );
 });
 
 console.log("Jodoh matchmaking agent online. Waiting for CAP orders…");
