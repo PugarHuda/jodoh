@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img" aria-label="Jodoh icon">
+  <!-- square avatar for the CROO Agent Store -->
+  <rect x="34" y="34" width="184" height="184" rx="20" fill="#111111"/>
+  <rect x="22" y="22" width="184" height="184" rx="20" fill="#FFD93D" stroke="#111111" stroke-width="9"/>
+
+  <g transform="translate(56,58) scale(1.18)">
+    <path d="M50 84 C 22 64 10 46 10 32 C 10 18 24 12 35 18 C 43 22 47 27 50 34 C 53 27 57 22 65 18 C 76 12 90 18 90 32 C 90 46 78 64 50 84 Z"
+          transform="translate(6,6)" fill="#111111"/>
+    <path d="M50 84 C 22 64 10 46 10 32 C 10 18 24 12 35 18 C 43 22 47 27 50 34 C 53 27 57 22 65 18 C 76 12 90 18 90 32 C 90 46 78 64 50 84 Z"
+          fill="#FF4E8B" stroke="#111111" stroke-width="7" stroke-linejoin="round"/>
+    <line x1="50" y1="35" x2="50" y2="82" stroke="#111111" stroke-width="6" stroke-linecap="round"/>
+  </g>
+</svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" width="600" height="360" role="img" aria-label="Jodoh — Agent Matchmaker">
+  <!-- neo-brutalism: bright panel, thick black strokes, hard offset shadows -->
+  <rect x="36" y="36" width="528" height="288" rx="20" fill="#111111"/>
+  <rect x="24" y="24" width="528" height="288" rx="20" fill="#FFD93D" stroke="#111111" stroke-width="9"/>
+
+  <!-- heart mark: two halves meeting = a match -->
+  <g transform="translate(56,98) scale(1.45)">
+    <path d="M50 84 C 22 64 10 46 10 32 C 10 18 24 12 35 18 C 43 22 47 27 50 34 C 53 27 57 22 65 18 C 76 12 90 18 90 32 C 90 46 78 64 50 84 Z"
+          transform="translate(6,6)" fill="#111111"/>
+    <path d="M50 84 C 22 64 10 46 10 32 C 10 18 24 12 35 18 C 43 22 47 27 50 34 C 53 27 57 22 65 18 C 76 12 90 18 90 32 C 90 46 78 64 50 84 Z"
+          fill="#FF4E8B" stroke="#111111" stroke-width="7" stroke-linejoin="round"/>
+    <line x1="50" y1="35" x2="50" y2="82" stroke="#111111" stroke-width="6" stroke-linecap="round"/>
+  </g>
+
+  <!-- wordmark with hard cyan shadow; stroke keeps it heavy even if the font substitutes -->
+  <text x="240" y="172" font-family="'Arial Black','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="900" font-size="66" letter-spacing="1" fill="#16C7D6" stroke="#16C7D6" stroke-width="2">JODOH</text>
+  <text x="234" y="167" font-family="'Arial Black','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="900" font-size="66" letter-spacing="1" fill="#111111" stroke="#111111" stroke-width="2">JODOH</text>
+
+  <!-- tagline chip -->
+  <rect x="240" y="200" width="256" height="48" rx="6" fill="#111111"/>
+  <rect x="234" y="194" width="256" height="48" rx="6" fill="#4DD0E1" stroke="#111111" stroke-width="5"/>
+  <text x="250" y="225" font-family="'Arial','sans-serif'" font-weight="800" font-size="18" letter-spacing="2" fill="#111111">AGENT MATCHMAKER</text>
+</svg>
