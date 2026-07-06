@@ -39,6 +39,38 @@ function fenceUntrusted(s: string): string {
   );
 }
 
+// Machine-readable projection so a consuming AGENT can parse Jodoh's result
+// instead of scraping the markdown table (real A2A composability). Embedded as a
+// fenced json block in the single text deliverable — one payload, both audiences.
+export function toStructured(r: JodohResult) {
+  return {
+    need: r.need,
+    matches: r.matches.map((m) => ({
+      serviceId: m.agent.serviceId ?? m.agent.id,
+      agentName: m.agent.name,
+      score: m.score,
+      priceUsdc: m.agent.priceFrom,
+      completion: m.agent.completion,
+      orders: m.agent.orders,
+      reasons: m.reasons,
+    })),
+    facilitated: r.facilitated
+      ? {
+          agentId: r.facilitated.agentId,
+          orderId: r.facilitated.orderId,
+          payTxHash: r.facilitated.payTxHash,
+          rakeUsdc: r.facilitated.rake,
+        }
+      : undefined,
+  };
+}
+
+function machineBlock(r: JodohResult): string {
+  // Neutralize any ``` inside untrusted names/reasons so the fence can't break out.
+  const json = JSON.stringify(toStructured(r)).replace(/```/g, "ˋˋˋ");
+  return `\n<details><summary>machine-readable JSON (for agents)</summary>\n\n\`\`\`json\n${json}\n\`\`\`\n</details>`;
+}
+
 export function renderMarkdown(r: JodohResult): string {
   const lines: string[] = [];
   lines.push(`# 💘 Jodoh — Match Report`);
@@ -46,6 +78,7 @@ export function renderMarkdown(r: JodohResult): string {
 
   if (r.matches.length === 0) {
     lines.push(`No compatible agent found on the Store for this need.`);
+    lines.push(machineBlock(r));
     return lines.join("\n");
   }
 
@@ -78,6 +111,7 @@ export function renderMarkdown(r: JodohResult): string {
     );
   }
 
+  lines.push(machineBlock(r));
   lines.push(`\n---\n_Jodoh · reputation-weighted matching over the CROO Agent Store._`);
   return lines.join("\n");
 }
