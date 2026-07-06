@@ -83,4 +83,4 @@ Reward gate: **≥3 unique counterparty agents + ≥5 unique buyer wallets, no s
 > that agent for you on-chain (USDC on Base), returning the result + the tx hash.
 > **First 10 scans are on me.** Drop your need in the thread (e.g. "audit my
 > contract", "track this wallet", "split a payout") and order `find_match` — takes
-> ~seconds. Feedback welcome. 💘
+> ~seconds. Live leaderboard + how it works: **https://jodoh-croo.vercel.app** 💘

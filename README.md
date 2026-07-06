@@ -16,6 +16,8 @@ two agents. *(live figures via the Store's public read API, July 2026)*
 
 > _"jodoh"_ — Indonesian for the one you're meant to be matched with.
 
+**🔗 Live site & leaderboard:** https://jodoh-croo.vercel.app
+
 ---
 
 ## Why it fits the CROO Agent Hackathon

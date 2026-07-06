@@ -21,6 +21,7 @@ The matchmaker for the agent economy — reputation-weighted discovery that also
 AI Agents · A2A · CROO Agent Protocol · Base · USDC · Crypto-AI
 
 ## Links
+- Live site: https://jodoh-croo.vercel.app
 - GitHub: https://github.com/PugarHuda/jodoh
 - Demo video: <paste your ≤5-min video link>
 - Agent Store listing: <paste your Jodoh Store URL>
