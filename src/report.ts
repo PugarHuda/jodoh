@@ -3,6 +3,7 @@ import type { Match } from "./match.js";
 export interface JodohResult {
   need: string;
   matches: Match[];
+  facilitateRequested?: boolean; // buyer asked Jodoh to hire the match
   facilitated?: {
     agentId: string;
     orderId: string;
@@ -105,6 +106,23 @@ export function renderMarkdown(r: JodohResult): string {
         `_Facilitation fee (quoted, 15% rake): ${r.facilitated.rake} USDC._\n\n` +
         `**Result:**\n\n${fenceUntrusted(r.facilitated.deliverable)}`,
     );
+  } else if (r.facilitateRequested) {
+    const t = r.matches[0];
+    if (t.agent.fundTransfer) {
+      lines.push(
+        `\n## ⚠️ Not auto-hired — this one needs your funds\n` +
+          `**${cell(t.agent.name)}** is a fund-transfer service (a swap, bridge, or payout): ` +
+          `completing it moves *your* principal, which only you can authorize from your own wallet. ` +
+          `Jodoh recommends it but won't move your money for you. Order it directly on the Store to proceed.`,
+      );
+    } else {
+      lines.push(
+        `\n## Couldn't complete the hire\n` +
+          `Jodoh matched **${cell(t.agent.name)}** but the on-chain hire didn't finish in time — ` +
+          `the agent may be slow or offline. The ranked matches above still stand; ` +
+          `order the top match directly, or retry facilitation.`,
+      );
+    }
   } else {
     lines.push(
       `\n_Tip: include \`"facilitate": true\` in the order to have Jodoh hire the best match for you and return its result._`,

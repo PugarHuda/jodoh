@@ -61,4 +61,15 @@ assert.equal(parsed.matches[0].serviceId, "svc1", "structured output carries ser
 assert.ok(!json.includes("```"), "untrusted ``` must be neutralized inside the json block");
 assert.equal(toStructured({ need: "n", matches: [] }).matches.length, 0, "empty match set structures cleanly");
 
+// facilitate requested but declined: fund-transfer top match explains it needs
+// the buyer's own funds; a flat-fee miss explains the hire didn't complete.
+const fundMatch = { agent: { id: "s", name: "SwapGod", description: "", tags: [], priceFrom: 0.1, completion: 100, orders: 9000, serviceId: "s", fundTransfer: true }, score: 100, reasons: [] };
+const fundOut = renderMarkdown({ need: "swap usdc", matches: [fundMatch], facilitateRequested: true });
+assert.ok(/needs your funds/i.test(fundOut), "fund-transfer match must explain the buyer authorizes their own principal");
+assert.ok(!fundOut.includes("Hired on your behalf"), "fund-transfer match must not claim a hire");
+
+const flatMiss = { agent: { id: "s2", name: "ChainGuard", description: "", tags: [], priceFrom: 0.1, completion: 100, orders: 20, serviceId: "s2" }, score: 100, reasons: [] };
+const missOut = renderMarkdown({ need: "audit", matches: [flatMiss], facilitateRequested: true });
+assert.ok(/couldn.t complete the hire/i.test(missOut), "flat-fee facilitation miss must be explained, not silent");
+
 console.log("PASS  report sanitizes untrusted catalog data + hired output.");

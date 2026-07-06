@@ -86,7 +86,11 @@ stream.on(EventType.OrderPaid, async (e) => {
 
     const catalog = await fetchCatalog(SELF_ID);
     const matches = matchAgents(req.need, catalog);
-    const result: JodohResult = { need: req.need, matches };
+    const result: JodohResult = {
+      need: req.need,
+      matches,
+      facilitateRequested: !!req.facilitate,
+    };
 
     if (req.facilitate && matches.length) {
       const f = await facilitate(client, matches[0], req.need);
