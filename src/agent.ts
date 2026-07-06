@@ -28,7 +28,7 @@ const client = new AgentClient(
     wsURL: required("CROO_WS_URL"),
     rpcURL: process.env.BASE_RPC_URL,
   },
-  process.env.CROO_SDK_KEY || required("CROO_API_KEY"),
+  required("CROO_SDK_KEY"),
 );
 
 interface Req {

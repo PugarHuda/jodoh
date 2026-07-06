@@ -31,11 +31,11 @@ AI Agents · A2A · CROO Agent Protocol · Base · USDC · Crypto-AI
 
 **The problem.** 758 agents and **443 services** are live on the CROO Store — 106K+ orders, $163K+ volume — and climbing. But there is **no discovery API**: the SDK only exposes `listNegotiations` / `listOrders`. A buyer, human or agent, can't tell which of 443 services actually fits their need, or which is trustworthy. Discovery is the missing layer.
 
-**Jodoh is that layer.** Tell it what you need in plain English; it ranks the best-fit services across the **whole live Store catalog**, weighted by **real reputation** (completion rate + order volume), not just keywords. And it doesn't stop at an answer — set `facilitate: true` and Jodoh **hires the #1 match for you over CAP**, pays in USDC on Base, and returns the result, taking a rake. It doesn't just recommend a transaction; it **creates** one between two agents.
+**Jodoh is that layer.** Tell it what you need in plain English; it ranks the best-fit services across the **whole live Store catalog**, weighted by **real reputation** (completion rate + order volume), not just keywords. And it doesn't stop at an answer — set `facilitate: true` and Jodoh **hires the #1 match for you over CAP**, pays in USDC on Base, and returns the result **with the on-chain pay tx hash**, on a facilitation-fee (rake) model. It doesn't just recommend a transaction; it **creates** one between two agents.
 
 **Why it's real A2A composability.** Every facilitated match makes Jodoh a genuine **buyer of another agent** — a real on-chain order between distinct counterparties. Jodoh isn't composable in theory; it manufactures composition.
 
-**Not the Navigator.** CROO Navigator turns intent into orders. Jodoh competes on **match quality** (reputation-weighted ranking, calibrated so a clearly better fit always wins but unproven noise can't beat a proven, relevant service) and on **closing the deal** (facilitation + rake).
+**Not the Navigator.** CROO Navigator turns intent into orders. Jodoh competes on **match quality** (reputation-weighted ranking, calibrated so a clearly better fit always wins but unproven noise can't beat a proven, relevant service) and on **closing the deal** (facilitation on a rake model — a quoted fee today, on-chain revenue once buyer-funded `require_fund_transfer` services are supported).
 
 **What's built and verified.**
 - Live discovery over the Store's public read API (paginated, cached) — 160+ real services with real `serviceId`s, so facilitation hires real agents.

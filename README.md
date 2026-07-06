@@ -4,7 +4,8 @@
 
 **The matchmaker for the agent economy.** Describe what you need in plain
 English — Jodoh finds the best-fit agent on the [CROO Agent Store](https://agent.croo.network),
-ranked by real reputation, and can **hire it for you**, taking a small rake.
+ranked by real reputation, and can **hire it for you on-chain** on a
+facilitation-fee (rake) model — see [economics](#capsdk-integration-notes).
 
 758 agents and **443 services** are live on the Store — 106K+ orders, $163K+
 volume — and climbing, but there is **no discovery API**. A buyer (human *or*
@@ -103,10 +104,14 @@ sponsored by the CROO Paymaster.
 WebSocket connects against the production backend (auth ✓, WS ✓). Once a service
 is listed, the provider accepts orders.
 
-**Facilitation economics:** on a flat-fee service Jodoh funds sub-order hires from
-its own wallet, so facilitation skips fund-transfer services and caps spend
-(`MAX_HIRE_USDC`). Sustainable paid facilitation lists Jodoh as a
-`require_fund_transfer` service so the buyer supplies the principal for the hire.
+**Facilitation economics (honest framing):** today Jodoh fronts each sub-order
+hire from **its own wallet** on flat-fee services, so it skips fund-transfer
+services and caps spend (`MAX_HIRE_USDC`). The 15% rake is therefore a **quoted
+fee shown in the report, not yet an on-chain collection** — so a hire is
+net-neutral-to-negative against Jodoh's own `find_match` fee. It becomes real
+revenue once Jodoh lists as a `require_fund_transfer` service and the buyer
+supplies the principal. The A2A value — a real on-chain order between two agents,
+with the pay tx hash in the deliverable — is real today regardless.
 
 **Discovery note:** the SDK has **no** agent/service listing API (only
 `listNegotiations` / `listOrders`) — which is why Jodoh exists. Jodoh matches

@@ -12,16 +12,24 @@ import type { Match } from "./match.js";
 // CROO_CATALOG_URL feed); seed entries have none, so it degrades to
 // recommendation-only.
 
-const RAKE_RATE = 0.15; // Jodoh keeps 15% of the sub-order price as its fee.
-// Safety cap: Jodoh funds the sub-order from its own wallet on a flat-fee model,
-// so bound the spend. Sustainable paid facilitation needs a require_fund_transfer
-// service where the buyer supplies the principal (see README).
+const RAKE_RATE = 0.15; // Quoted facilitation fee (15% of sub-order price).
+// Safety cap: Jodoh fronts the sub-order from its OWN wallet on a flat-fee model,
+// so bound the spend. The rake is a QUOTED fee, not an on-chain collection today —
+// net-positive facilitation needs a require_fund_transfer service where the buyer
+// supplies the principal (see README). MAX_HIRE_USDC bounds Jodoh's own exposure.
 const MAX_HIRE_USDC = 0.25;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Real Store agents run to an SLA (< 30 min), not seconds. Poll long enough that a
+// genuine counterparty can accept and deliver; overridable for slower services.
+// ponytail: fixed poll budget; raise the env knobs if you hire slow agents.
+const ACCEPT_TRIES = Number(process.env.FACILITATE_ACCEPT_TRIES) || 20; // ~40s
+const DELIVER_TRIES = Number(process.env.FACILITATE_DELIVER_TRIES) || 90; // ~3min
 
 export interface Facilitation {
   agentId: string;
   orderId: string;
+  payTxHash: string; // on-chain proof of the A2A order (Base); "" if unavailable
   rake: number;
   deliverable: string;
 }
@@ -46,7 +54,7 @@ export async function facilitate(
 
     // 2) Wait for the provider to accept -> our order to appear.
     let orderId: string | undefined;
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < ACCEPT_TRIES; i++) {
       // We are the buyer/requester of this sub-order. role is required by the API.
       const orders = await client.listOrders({ role: "buyer" }).catch(() => []);
       const order = orders.find((o) => o.negotiationId === neg.negotiationId);
@@ -58,12 +66,14 @@ export async function facilitate(
     }
     if (!orderId) return undefined;
 
-    // 3) Pay into escrow (USDC on Base; gas sponsored by CROO).
-    await client.payOrder(orderId);
+    // 3) Pay into escrow (USDC on Base; gas sponsored by CROO). Capture the tx
+    //    hash — this is the on-chain proof that Jodoh really hired another agent.
+    const pay = await client.payOrder(orderId).catch(() => undefined);
+    const payTxHash = pay?.txHash ?? "";
 
     // 4) Poll for the delivered result.
     let deliverable = "";
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < DELIVER_TRIES; i++) {
       const d = await client.getDelivery(orderId).catch(() => null);
       if (d?.deliverableText) {
         deliverable = d.deliverableText;
@@ -74,7 +84,7 @@ export async function facilitate(
     if (!deliverable) return undefined;
 
     const rake = +(top.agent.priceFrom * RAKE_RATE).toFixed(4);
-    return { agentId: top.agent.id, orderId, rake, deliverable };
+    return { agentId: top.agent.id, orderId, payTxHash, rake, deliverable };
   } catch (err) {
     console.warn(`facilitation failed, returning recommendation only: ${String(err)}`);
     return undefined;

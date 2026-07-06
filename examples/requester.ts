@@ -18,7 +18,7 @@ const client = new AgentClient(
     wsURL: required("CROO_WS_URL"),
     rpcURL: process.env.BASE_RPC_URL,
   },
-  process.env.CROO_SDK_KEY || required("CROO_API_KEY"),
+  required("CROO_SDK_KEY"),
 );
 
 const serviceId = required("CROO_TARGET_SERVICE_ID");
@@ -39,8 +39,9 @@ stream.on(EventType.OrderCompleted, async (e: any) => {
   process.exit(0);
 });
 
+console.log(`facilitate (hire the match on-chain): ${facilitate ? "ON" : "off"}`);
 const neg: any = await client.negotiateOrder({
   serviceId,
   requirements: JSON.stringify({ need, facilitate }),
 });
-console.log(`negotiation sent for: "${need}"`, neg?.negotiation_id ?? "");
+console.log(`negotiation sent for: "${need}"`, neg?.negotiationId ?? "");

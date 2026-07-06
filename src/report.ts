@@ -6,6 +6,7 @@ export interface JodohResult {
   facilitated?: {
     agentId: string;
     orderId: string;
+    payTxHash: string;
     rake: number;
     deliverable: string;
   };
@@ -60,10 +61,15 @@ export function renderMarkdown(r: JodohResult): string {
   lines.push(`\n**Best match:** ${cell(top.agent.name)} (\`${cell(top.agent.id)}\`)`);
 
   if (r.facilitated) {
+    const tx = r.facilitated.payTxHash;
+    const txLine = tx
+      ? `On-chain (Base): [\`${cell(tx)}\`](https://basescan.org/tx/${cell(tx)})`
+      : `On-chain (Base): settled in escrow.`;
     lines.push(
       `\n## ✅ Hired on your behalf\n` +
-        `Order \`${cell(r.facilitated.orderId)}\` placed with \`${cell(r.facilitated.agentId)}\`. ` +
-        `Jodoh rake: ${r.facilitated.rake} USDC.\n\n` +
+        `Order \`${cell(r.facilitated.orderId)}\` placed with \`${cell(r.facilitated.agentId)}\` and paid. ` +
+        `${txLine}\n` +
+        `_Facilitation fee (quoted, 15% rake): ${r.facilitated.rake} USDC._\n\n` +
         `**Result:**\n\n${fenceUntrusted(r.facilitated.deliverable)}`,
     );
   } else {
