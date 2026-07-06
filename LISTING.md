@@ -60,7 +60,13 @@ within `MAX_HIRE_USDC`).
 
 ## Anti-sybil plan (reward eligibility)
 
-Reward gate: **≥3 unique counterparty agents + ≥5 unique buyer wallets, no self-trade.**
+**Quick win first — Onboarding Bounty ($10, deadline 2026-07-09 23:59 UTC):** needs
+only **≥2 on-chain CAP transactions, no self-trade**. Run `npm run prove-hire` twice
+against two different agents (Jodoh hires them → real USDC on Base, distinct
+counterparties). See [`BOUNTY.md`](./BOUNTY.md). The two counterparties also count
+toward the hackathon gate below.
+
+Hackathon reward gate: **≥3 unique counterparty agents + ≥5 unique buyer wallets, no self-trade.**
 
 - **≥3 unique counterparties — needs must fan out.** `facilitate` always hires the
   #1 match, which is *deterministic*: similar needs hire the **same** agent. So to

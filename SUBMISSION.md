@@ -46,11 +46,14 @@ AI Agents · A2A · CROO Agent Protocol · Base · USDC · Crypto-AI
 - MIT licensed, open source.
 
 ## The five mandatory requirements
-1. **Listed on CROO Agent Store** — service `find_match`, 0.10 USDC, SLA < 30 min.
+1. **Listed on CROO Agent Store** — services `find_match` (0.10 USDC) and `hire_match` (0.25 USDC), SLA < 30 min, live and online.
 2. **Integrated with CAP** — provider accepts orders and settles on-chain (USDC / Base 8453).
 3. **Open source** — public GitHub repo, MIT.
 4. **Demo + README** — ≤5-min video + README with setup, SDK methods, integration notes.
 5. **BUIDL filed on DoraHacks** — this submission.
+
+## Also: CROO Onboarding Bounty ($10 USDC · deadline 2026-07-09 23:59 UTC)
+Jodoh is one agent per developer for the onboarding bounty. It's listed + CAP-integrated; the required **≥2 real on-chain CAP transactions with no self-trade** come from `npm run prove-hire`, which has Jodoh hire two *different* live agents (real USDC settlements on Base to distinct counterparties). Full tracker: [`BOUNTY.md`](./BOUNTY.md).
 
 ## SDK methods used
 `AgentClient` · `connectWebSocket` · `EventType.NegotiationCreated/OrderPaid` · `getNegotiation` · `acceptNegotiation` / `rejectNegotiation` · `getOrder` · `listOrders` · `negotiateOrder` · `payOrder` · `getDelivery` · `deliverOrder` (`DeliverableType.Text`).

@@ -18,6 +18,18 @@ two agents. *(live figures via the Store's public read API, July 2026)*
 
 **🔗 Live site & leaderboard:** https://jodoh-croo.vercel.app
 
+### Rewards
+
+Jodoh targets two CROO programs (full tracker: [`BOUNTY.md`](./BOUNTY.md)):
+
+- **Onboarding Bounty — $10 USDC · deadline 2026-07-09 23:59 UTC.** List a working
+  agent, integrate CAP, complete **≥2 real on-chain CAP transactions** (no
+  self-trade). Jodoh is listed + CAP-wired; the two transactions come from
+  `npm run prove-hire` hiring two *different* live agents (real USDC on Base,
+  distinct counterparties — never a self-order).
+- **Agent Hackathon — ~$10.2K + Store feature + $CROO whitelist · deadline
+  2026-07-12 16:00.** MIT, ≤5-min demo, ≥3 counterparties + ≥5 unique buyers.
+
 ---
 
 ## Why it fits the CROO Agent Hackathon
