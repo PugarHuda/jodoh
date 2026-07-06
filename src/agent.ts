@@ -65,6 +65,10 @@ function parseReq(requirements: string | undefined): Req {
 // Stash the parsed need against the order id so we have it when payment lands.
 const pending = new Map<string, Req>();
 
+// Orders already handled — a replayed OrderPaid (WS reconnect/buffer) must not
+// re-run matching or, worse, facilitate and PAY a sub-order a second time.
+const handledOrders = new Set<string>();
+
 const stream = await client.connectWebSocket();
 
 stream.on(EventType.NegotiationCreated, async (e) => {
@@ -89,6 +93,9 @@ stream.on(EventType.NegotiationCreated, async (e) => {
 stream.on(EventType.OrderPaid, async (e) => {
   try {
     const orderId = e.order_id!;
+    // Idempotency: skip a replayed OrderPaid so we never double-hire / double-pay.
+    if (handledOrders.has(orderId)) return;
+    handledOrders.add(orderId);
     let req = pending.get(orderId);
     if (!req) {
       // Recover if we missed the negotiation (e.g. restart): order -> negotiation.
