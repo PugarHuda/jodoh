@@ -131,17 +131,23 @@ const CACHE_TTL_MS = 60_000;
 
 let cache: { at: number; data: AgentEntry[] } | null = null;
 
-// Walk paginated pages until a short page (or the safety cap) is hit.
+// Walk paginated pages until a short page (or the safety cap) is hit. A transient
+// error on any page breaks the loop and returns the pages gathered so far —
+// partial live data beats collapsing the whole catalog to the 10-item seed.
 async function fetchAll(path: string, key: string): Promise<any[]> {
   const out: any[] = [];
   for (let page = 1; page <= 40; page++) {
-    const res = await fetch(`${PUBLIC_API}/${path}?pageSize=${PAGE_SIZE}&page=${page}`, {
-      signal: AbortSignal.timeout(12_000),
-    });
-    if (!res.ok) break;
-    const arr: any[] = ((await res.json()) as any)[key] ?? [];
-    out.push(...arr);
-    if (arr.length < PAGE_SIZE) break;
+    try {
+      const res = await fetch(`${PUBLIC_API}/${path}?pageSize=${PAGE_SIZE}&page=${page}`, {
+        signal: AbortSignal.timeout(12_000),
+      });
+      if (!res.ok) break;
+      const arr: any[] = ((await res.json()) as any)[key] ?? [];
+      out.push(...arr);
+      if (arr.length < PAGE_SIZE) break;
+    } catch {
+      break; // timeout / network blip — keep what we already have
+    }
   }
   return out;
 }
