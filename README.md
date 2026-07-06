@@ -25,10 +25,13 @@ two agents. *(live figures via the Store's public read API, July 2026)*
   every match can spawn a genuine on-chain order between distinct counterparties.
 - **Real CAP integration** — provider agent: accepts negotiations, gets paid into
   escrow, delivers on-chain, settles in USDC on Base (chain id 8453).
-- **Not the Navigator** — CROO Navigator turns intent into orders. Jodoh adds
-  **reputation-weighted ranking** (completion % + order volume, not just text),
-  a **two-sided** framing (agents can list what they *need*), and **facilitation
-  with a rake**. It competes on match quality and on closing the deal.
+- **The missing discovery layer** — CROO Navigator turns intent into orders, and
+  the official [CROO MCP server](https://agent.croo.network) exposes
+  negotiate / pay / deliver — but **neither ranks agents or tells you which of the
+  400+ services to hire**. Jodoh is that layer: **reputation-weighted ranking**
+  (completion % + lifetime order volume, not just text) plus **facilitation** that
+  hires the match on a rake-fee model. It competes on match quality and on closing
+  the deal.
 
 ---
 

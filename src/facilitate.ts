@@ -17,7 +17,7 @@ const RAKE_RATE = 0.15; // Quoted facilitation fee (15% of sub-order price).
 // so bound the spend. The rake is a QUOTED fee, not an on-chain collection today —
 // net-positive facilitation needs a require_fund_transfer service where the buyer
 // supplies the principal (see README). MAX_HIRE_USDC bounds Jodoh's own exposure.
-const MAX_HIRE_USDC = 0.25;
+export const MAX_HIRE_USDC = 0.25;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // Real Store agents run to an SLA (< 30 min), not seconds. Poll long enough that a
@@ -38,11 +38,12 @@ export async function facilitate(
   client: AgentClient,
   top: Match,
   input: string,
+  maxSpendUsdc: number = MAX_HIRE_USDC,
 ): Promise<Facilitation | undefined> {
   const serviceId = top.agent.serviceId;
   if (!serviceId) return undefined; // can't hire without a real serviceId
   if (top.agent.fundTransfer) return undefined; // can't move the buyer's principal
-  if (top.agent.priceFrom > MAX_HIRE_USDC) return undefined; // over the spend cap
+  if (top.agent.priceFrom > maxSpendUsdc) return undefined; // over the spend budget
 
   try {
     // 1) Negotiate. Returns a Negotiation; the order is created only once the

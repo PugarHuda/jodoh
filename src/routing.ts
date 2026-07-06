@@ -9,3 +9,12 @@ export function shouldFacilitate(
 ): boolean {
   return requested || (!!hireServiceId && serviceId === hireServiceId);
 }
+
+// How much Jodoh may front to hire a sub-agent: never more than it earned on the
+// order, never more than the absolute per-hire ceiling. So a misconfigured (e.g.
+// 10x-low) service price can't make a hire cost more than its revenue and drain
+// the wallet. Unknown earnings (undefined/0) fall back to the ceiling.
+export function hireBudget(earnedUsdc: number | undefined, ceiling: number): number {
+  const earned = earnedUsdc && earnedUsdc > 0 ? earnedUsdc : ceiling;
+  return Math.min(ceiling, earned);
+}

@@ -11,8 +11,8 @@ import "dotenv/config";
 import { AgentClient, EventType, DeliverableType } from "@croo-network/sdk";
 import { fetchCatalog } from "./catalog.js";
 import { matchAgents } from "./match.js";
-import { facilitate } from "./facilitate.js";
-import { shouldFacilitate } from "./routing.js";
+import { facilitate, MAX_HIRE_USDC } from "./facilitate.js";
+import { shouldFacilitate, hireBudget } from "./routing.js";
 import { renderMarkdown, type JodohResult } from "./report.js";
 
 function required(name: string): string {
@@ -96,10 +96,11 @@ stream.on(EventType.OrderPaid, async (e) => {
     // Idempotency: skip a replayed OrderPaid so we never double-hire / double-pay.
     if (handledOrders.has(orderId)) return;
     handledOrders.add(orderId);
+    const order = await client.getOrder(orderId).catch(() => undefined);
     let req = pending.get(orderId);
     if (!req) {
       // Recover if we missed the negotiation (e.g. restart): order -> negotiation.
-      const order = await client.getOrder(orderId);
+      if (!order) return; // can't recover without the order
       const neg = await client.getNegotiation(order.negotiationId);
       req = parseReq(neg.requirements);
       req.facilitate = shouldFacilitate(!!req.facilitate, order.serviceId, HIRE_ID);
@@ -123,8 +124,10 @@ stream.on(EventType.OrderPaid, async (e) => {
     // buyer's own funds. Bounded by topN (<=3). Matters most for hire_match,
     // which charged a premium on the promise of a hire.
     if (req.facilitate && matches.length && SELF_AGENT_ID) {
+      // Never front more than Jodoh earned on this order (bounded by MAX_HIRE_USDC).
+      const budget = hireBudget(order ? Number(order.price) / 1e6 : undefined, MAX_HIRE_USDC);
       for (const m of matches) {
-        const f = await facilitate(client, m, req.need);
+        const f = await facilitate(client, m, req.need, budget);
         if (f) {
           result.facilitated = f;
           break;
