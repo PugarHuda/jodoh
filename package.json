@@ -10,6 +10,7 @@
     "match": "tsx src/cli.ts",
     "demo": "tsx src/demo.ts",
     "buyer": "tsx examples/requester.ts",
+    "prove-hire": "tsx examples/prove-hire.ts",
     "health": "tsx examples/healthcheck.ts",
     "test": "tsx test/match.test.ts && tsx test/report.test.ts && tsx test/routing.test.ts"
   },

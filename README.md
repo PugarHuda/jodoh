@@ -73,6 +73,11 @@ npm run match -- "split a usdc payment to my team on base"
 
 # 3) Go live on CAP: accept orders, match, optionally hire, deliver on-chain
 npm start
+
+# 4) Prove the A2A hire leg on-chain (needs a little USDC in Jodoh's wallet):
+#    Jodoh directly hires the best-fit real agent and prints the pay tx hash.
+npm run prove-hire -- "audit my smart contract for vulnerabilities"
+#   → ✅ Hired another agent on-chain … pay tx: https://basescan.org/tx/0x…
 ```
 
 Order payload: `{ "need": "plain english", "facilitate": true }`. With
