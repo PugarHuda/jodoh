@@ -1,6 +1,7 @@
 // Local matcher: rank live Store agents against a need, no CAP required.
 // Use it to test and to record the demo video.
 //   npm run match -- "I need to audit a smart contract for vulnerabilities"
+import "dotenv/config";
 import { fetchCatalog } from "./catalog.js";
 import { matchAgents } from "./match.js";
 import { renderMarkdown } from "./report.js";
@@ -11,7 +12,7 @@ if (!need) {
   process.exit(2);
 }
 
-const catalog = await fetchCatalog();
+const catalog = await fetchCatalog(process.env.CROO_AGENT_ID);
 console.error(`(matching against ${catalog.length} live Store services)\n`);
 const matches = matchAgents(need, catalog);
 console.log(renderMarkdown({ need, matches }));

@@ -110,9 +110,19 @@ stream.on(EventType.OrderPaid, async (e) => {
 
     // Only facilitate when we know our own agent id (so the catalog excluded all
     // our services) — otherwise we might hire ourselves. Guarded above.
+    // Hire the top match that's actually hireable: facilitate() fast-returns
+    // (no polling) for fund-transfer / no-serviceId / over-cap matches, so this
+    // skips to the first flat-fee candidate instead of failing when #1 needs the
+    // buyer's own funds. Bounded by topN (<=3). Matters most for hire_match,
+    // which charged a premium on the promise of a hire.
     if (req.facilitate && matches.length && SELF_AGENT_ID) {
-      const f = await facilitate(client, matches[0], req.need);
-      if (f) result.facilitated = f;
+      for (const m of matches) {
+        const f = await facilitate(client, m, req.need);
+        if (f) {
+          result.facilitated = f;
+          break;
+        }
+      }
     }
 
     await client.deliverOrder(orderId, {

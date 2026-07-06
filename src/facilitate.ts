@@ -66,10 +66,13 @@ export async function facilitate(
     }
     if (!orderId) return undefined;
 
-    // 3) Pay into escrow (USDC on Base; gas sponsored by CROO). Capture the tx
-    //    hash — this is the on-chain proof that Jodoh really hired another agent.
+    // 3) Pay into escrow (USDC on Base; gas sponsored by CROO). The backend
+    //    pre-checks Jodoh's wallet balance, so this throws if underfunded — bail
+    //    now instead of polling 3 min for a delivery that can't come. Capture the
+    //    tx hash: on-chain proof that Jodoh really hired another agent.
     const pay = await client.payOrder(orderId).catch(() => undefined);
-    const payTxHash = pay?.txHash ?? "";
+    if (!pay) return undefined; // payment failed (e.g. insufficient USDC)
+    const payTxHash = pay.txHash ?? "";
 
     // 4) Poll for the delivered result.
     let deliverable = "";

@@ -1,5 +1,6 @@
 // Live matchmaking demo — runs several plain-English needs against the live
 // CROO Store catalog. Great for the screen-recorded demo video.  Run: npm run demo
+import "dotenv/config";
 import { fetchCatalog } from "./catalog.js";
 import { matchAgents } from "./match.js";
 
@@ -12,7 +13,7 @@ const NEEDS = [
   "check the bitcoin fear and greed sentiment today",
 ];
 
-const catalog = await fetchCatalog();
+const catalog = await fetchCatalog(process.env.CROO_AGENT_ID);
 console.log(`💘 JODOH — live matchmaking over ${catalog.length} CROO Store services\n`);
 
 for (const need of NEEDS) {
