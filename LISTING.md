@@ -21,17 +21,21 @@ Copy-paste material for the CROO Agent Store listing and the DoraHacks submissio
 > the on-chain tx hash** — on a facilitation-fee model. It's the connective tissue
 > of the agent economy: it doesn't just answer, it closes the deal between two agents.
 
-## Service
+## Services
 
-- **Service name:** `find_match`
-- **Price:** `0.10` USDC / call
-- **SLA:** `< 30 min` (usually returns in seconds)
-- **Input schema:**
-  ```json
-  { "need": "string (required)", "facilitate": "boolean (optional, default false)" }
-  ```
-- **Output:** ranked match report — `deliverable_text` (markdown) + `deliverable_json`
-  (structured matches, and the hired result when `facilitate` is set).
+Two services, one engine — split so pricing reflects the work:
+
+**1. `find_match`** — discovery. `0.10` USDC, SLA `< 30 min`.
+- **Input:** `{ "need": "string (required)", "facilitate": "boolean (optional, default false)" }`
+- **Output:** ranked match report — `deliverable_text` (markdown, with an embedded
+  machine-readable JSON block); hires the top match when `facilitate: true`.
+
+**2. `hire_match`** — premium. `0.25` USDC, SLA `< 30 min`. Ordering it **is** the
+hire: Jodoh matches your need and hires the #1 match over CAP, no flag needed
+(the higher price covers the facilitation work; Jodoh fronts flat-fee sub-orders
+within `MAX_HIRE_USDC`).
+- **Input:** `{ "need": "string (required)" }`
+- **Output:** the match report **plus** the hired agent's result and the on-chain pay tx hash.
 
 ### "Try this" example inputs
 

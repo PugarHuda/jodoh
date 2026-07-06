@@ -14,6 +14,7 @@ export interface AgentEntry {
   completion: number; // % completed orders (reputation)
   orders: number; // total orders (reputation)
   serviceId?: string; // real CROO serviceId; required to actually hire (facilitate)
+  agentId?: string; // owning agent; used to exclude ALL of Jodoh's own services
   fundTransfer?: boolean; // service needs the buyer to move principal — recommend but don't auto-hire
 }
 
@@ -147,13 +148,15 @@ async function fetchAll(path: string, key: string): Promise<any[]> {
 
 /**
  * Fetch the live Store catalog: all /public/services joined with /public/agents
- * for reputation. Each entry carries a real serviceId (hireable). Skips
- * fund-transfer services (swaps/bridges Jodoh can't cleanly facilitate) and Jodoh
- * itself. Cached 60s. Never hard-fails — falls back to the curated seed on error.
+ * for reputation. Each entry carries a real serviceId (hireable). Excludes every
+ * service owned by `selfAgentId` (so Jodoh never matches or hires any of its own
+ * services — self-trade is disqualifying). Cached 60s. Never hard-fails — falls
+ * back to the curated seed on error.
  */
-export async function fetchCatalog(selfServiceId?: string): Promise<AgentEntry[]> {
+export async function fetchCatalog(selfAgentId?: string): Promise<AgentEntry[]> {
+  const notSelf = (e: AgentEntry) => !selfAgentId || e.agentId !== selfAgentId;
   if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
-    return cache.data.filter((e) => e.serviceId !== selfServiceId);
+    return cache.data.filter(notSelf);
   }
   try {
     const [services, agents] = await Promise.all([
@@ -194,12 +197,13 @@ export async function fetchCatalog(selfServiceId?: string): Promise<AgentEntry[]
         // misreport "N orders". Fall back to orders7d only if lifetime is absent.
         orders: Number(a.completedOrders ?? s.orders7d ?? 0),
         serviceId: s.serviceId,
+        agentId: s.agentId,
         fundTransfer,
       });
     }
     if (!entries.length) return SEED_CATALOG;
     cache = { at: Date.now(), data: entries };
-    return entries.filter((e) => e.serviceId !== selfServiceId);
+    return entries.filter(notSelf);
   } catch {
     return SEED_CATALOG;
   }

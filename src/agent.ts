@@ -12,6 +12,7 @@ import { AgentClient, EventType, DeliverableType } from "@croo-network/sdk";
 import { fetchCatalog } from "./catalog.js";
 import { matchAgents } from "./match.js";
 import { facilitate } from "./facilitate.js";
+import { shouldFacilitate } from "./routing.js";
 import { renderMarkdown, type JodohResult } from "./report.js";
 
 function required(name: string): string {
@@ -20,15 +21,17 @@ function required(name: string): string {
   return v;
 }
 
-// Jodoh's own service id. When set, fetchCatalog excludes it so Jodoh never
-// matches — or hires — itself (self-trade is disqualifying and could recurse).
-// If unset we can't identify ourselves in the catalog, so facilitation is
-// disabled below rather than risk hiring our own service.
-const SELF_ID = process.env.CROO_SERVICE_ID;
-if (!SELF_ID) {
+// Jodoh's own agent id. fetchCatalog excludes every service under it, so Jodoh
+// never matches — or hires — any of its own services (find_match, hire_match, …).
+// Self-trade is disqualifying and could recurse. If unset we can't identify
+// ourselves, so facilitation is disabled below rather than risk a self-hire.
+const SELF_AGENT_ID = process.env.CROO_AGENT_ID;
+// hire_match: ordering this service forces a hire regardless of the buyer's flag.
+const HIRE_ID = process.env.CROO_HIRE_SERVICE_ID;
+if (!SELF_AGENT_ID) {
   console.warn(
-    "⚠️  CROO_SERVICE_ID not set — can't exclude Jodoh from its own catalog; " +
-      "facilitation is DISABLED to avoid self-trade. Set it after registering find_match.",
+    "⚠️  CROO_AGENT_ID not set — can't exclude Jodoh from its own catalog; " +
+      "facilitation is DISABLED to avoid self-trade. Set it (your agent id) after registering.",
   );
 }
 
@@ -73,6 +76,8 @@ stream.on(EventType.NegotiationCreated, async (e) => {
       await client.rejectNegotiation(negId, "missing 'need' in requirements");
       return;
     }
+    // hire_match orders force facilitation; find_match respects the flag.
+    req.facilitate = shouldFacilitate(!!req.facilitate, neg.serviceId, HIRE_ID);
     const res = await client.acceptNegotiation(negId);
     pending.set(res.order.orderId, req);
     console.log(`accepted negotiation ${negId} -> order ${res.order.orderId}`);
@@ -90,11 +95,12 @@ stream.on(EventType.OrderPaid, async (e) => {
       const order = await client.getOrder(orderId);
       const neg = await client.getNegotiation(order.negotiationId);
       req = parseReq(neg.requirements);
+      req.facilitate = shouldFacilitate(!!req.facilitate, order.serviceId, HIRE_ID);
     }
     if (!req.need) return;
     console.log(`order ${orderId} paid — matching: "${req.need}"`);
 
-    const catalog = await fetchCatalog(SELF_ID);
+    const catalog = await fetchCatalog(SELF_AGENT_ID);
     const matches = matchAgents(req.need, catalog);
     const result: JodohResult = {
       need: req.need,
@@ -102,9 +108,9 @@ stream.on(EventType.OrderPaid, async (e) => {
       facilitateRequested: !!req.facilitate,
     };
 
-    // Only facilitate when we know our own id (so the catalog excluded us) —
-    // otherwise we might hire our own service. Guarded above with a warning.
-    if (req.facilitate && matches.length && SELF_ID) {
+    // Only facilitate when we know our own agent id (so the catalog excluded all
+    // our services) — otherwise we might hire ourselves. Guarded above.
+    if (req.facilitate && matches.length && SELF_AGENT_ID) {
       const f = await facilitate(client, matches[0], req.need);
       if (f) result.facilitated = f;
     }
