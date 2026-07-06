@@ -20,7 +20,17 @@ function required(name: string): string {
   return v;
 }
 
+// Jodoh's own service id. When set, fetchCatalog excludes it so Jodoh never
+// matches — or hires — itself (self-trade is disqualifying and could recurse).
+// If unset we can't identify ourselves in the catalog, so facilitation is
+// disabled below rather than risk hiring our own service.
 const SELF_ID = process.env.CROO_SERVICE_ID;
+if (!SELF_ID) {
+  console.warn(
+    "⚠️  CROO_SERVICE_ID not set — can't exclude Jodoh from its own catalog; " +
+      "facilitation is DISABLED to avoid self-trade. Set it after registering find_match.",
+  );
+}
 
 const client = new AgentClient(
   {
@@ -92,7 +102,9 @@ stream.on(EventType.OrderPaid, async (e) => {
       facilitateRequested: !!req.facilitate,
     };
 
-    if (req.facilitate && matches.length) {
+    // Only facilitate when we know our own id (so the catalog excluded us) —
+    // otherwise we might hire our own service. Guarded above with a warning.
+    if (req.facilitate && matches.length && SELF_ID) {
       const f = await facilitate(client, matches[0], req.need);
       if (f) result.facilitated = f;
     }

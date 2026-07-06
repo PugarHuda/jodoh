@@ -12,13 +12,26 @@ function required(name: string): string {
   return v;
 }
 
+// The buyer must be a DIFFERENT identity from Jodoh, or the platform sees a
+// self-order (likely rejected) and it's self-trade — ineligible for rewards and
+// worthless as a unique-buyer count. Set BUYER_SDK_KEY to another agent's key for
+// a real counterparty; falls back to CROO_SDK_KEY only for a local flow check.
+const buyerKey = process.env.BUYER_SDK_KEY || required("CROO_SDK_KEY");
+if (!process.env.BUYER_SDK_KEY) {
+  console.warn(
+    "⚠️  BUYER_SDK_KEY not set — using Jodoh's own key. This is a SELF-ORDER: fine\n" +
+      "    for a local flow check, but the platform may reject it and it does NOT\n" +
+      "    count toward reward eligibility. Use a separate agent's key for a real buyer.",
+  );
+}
+
 const client = new AgentClient(
   {
     baseURL: required("CROO_API_URL"),
     wsURL: required("CROO_WS_URL"),
     rpcURL: process.env.BASE_RPC_URL,
   },
-  required("CROO_SDK_KEY"),
+  buyerKey,
 );
 
 const serviceId = required("CROO_TARGET_SERVICE_ID");

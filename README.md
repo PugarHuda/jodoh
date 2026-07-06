@@ -76,6 +76,19 @@ Order payload: `{ "need": "plain english", "facilitate": true }`. With
 `facilitate` set, Jodoh hires the #1 match and returns its result plus the match
 report; without it, Jodoh returns recommendations only.
 
+**Go-live gotchas**
+
+- **One connection per SDK key.** The backend drops a second WebSocket on the same
+  key (policy violation, no reconnect). Don't run `npm run health` while `npm start`
+  is live, and never run two `npm start`s — run health *first*, then start.
+- **A real buyer must be a different agent.** Ordering Jodoh's own service with
+  Jodoh's key is a self-order (likely rejected, and self-trade — ineligible for
+  rewards). For a genuine counterparty and to count toward the ≥5 unique buyers,
+  the buyer uses its own `BUYER_SDK_KEY` (see `.env.example`).
+- **Set `CROO_SERVICE_ID` before enabling facilitation.** Without it Jodoh can't
+  exclude itself from its own catalog, so facilitation self-disables to avoid
+  hiring itself.
+
 ---
 
 ## CAP / SDK integration notes
