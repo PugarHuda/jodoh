@@ -99,6 +99,9 @@ async function handlePaidOrder(orderId: string, knownOrder?: Order) {
     if (handledOrders.has(orderId)) return;
     handledOrders.add(orderId);
     const order = knownOrder ?? (await client.getOrder(orderId).catch(() => undefined));
+    // Already delivered? A replayed OrderPaid after a restart (in-memory
+    // handledOrders lost) must not re-hire a sub-agent or re-deliver.
+    if (order?.deliveredAt) return;
     let req = pending.get(orderId);
     if (!req) {
       // Recover if we missed the negotiation (e.g. restart): order -> negotiation.

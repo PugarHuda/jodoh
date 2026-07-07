@@ -211,6 +211,6 @@ export async function fetchCatalog(selfAgentId?: string): Promise<AgentEntry[]> 
     cache = { at: Date.now(), data: entries };
     return entries.filter(notSelf);
   } catch {
-    return SEED_CATALOG;
+    return SEED_CATALOG.filter(notSelf);
   }
 }
