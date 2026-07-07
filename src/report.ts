@@ -104,7 +104,11 @@ export function renderMarkdown(r: JodohResult): string {
         `Order \`${cell(r.facilitated.orderId)}\` placed with \`${cell(r.facilitated.agentId)}\` and paid. ` +
         `${txLine}\n` +
         `_Facilitation fee (quoted, 15% rake): ${r.facilitated.rake} USDC._\n\n` +
-        `**Result:**\n\n${fenceUntrusted(r.facilitated.deliverable)}`,
+        `**Result:**\n\n${
+          r.facilitated.deliverable
+            ? fenceUntrusted(r.facilitated.deliverable)
+            : "_Delivery pending — the hired agent has been paid on-chain (see tx above) and will deliver on its SLA._"
+        }`,
     );
   } else if (r.facilitateRequested) {
     const t = r.matches[0];

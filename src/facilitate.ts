@@ -75,7 +75,11 @@ export async function facilitate(
     if (!pay) return undefined; // payment failed (e.g. insufficient USDC)
     const payTxHash = pay.txHash ?? "";
 
-    // 4) Poll for the delivered result.
+    // 4) Poll for the delivered result. The order is ALREADY PAID here, so we must
+    //    NOT return undefined on a slow delivery: the caller reads undefined as
+    //    "not hired" and pays the NEXT match for the same need (double-spend). The
+    //    pay tx hash is the on-chain proof of the hire; a real agent may deliver
+    //    on its SLA (up to ~30min), after Jodoh has already returned to the buyer.
     let deliverable = "";
     for (let i = 0; i < DELIVER_TRIES; i++) {
       const d = await client.getDelivery(orderId).catch(() => null);
@@ -85,10 +89,10 @@ export async function facilitate(
       }
       await sleep(2000);
     }
-    if (!deliverable) return undefined;
 
     const rake = +(top.agent.priceFrom * RAKE_RATE).toFixed(4);
-    return { agentId: top.agent.id, orderId, payTxHash, rake, deliverable };
+    // agent.id holds the serviceId (see catalog.ts); report the real owning agentId.
+    return { agentId: top.agent.agentId ?? top.agent.id, orderId, payTxHash, rake, deliverable };
   } catch (err) {
     console.warn(`facilitation failed, returning recommendation only: ${String(err)}`);
     return undefined;
