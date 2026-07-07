@@ -10,10 +10,14 @@
 //
 // Pick a need that maps to a fast flat-fee agent so it delivers within the poll
 // window. Fund-transfer matches (swaps/payouts) are skipped automatically.
+//
+// To hire an EXACT counterparty (e.g. to guarantee 3 distinct agents for the
+// onboarding bounty), pin its serviceId:
+//   npm run prove-hire -- --service <serviceId> "any note"
 import "dotenv/config";
 import { AgentClient } from "@croo-network/sdk";
 import { fetchCatalog } from "../src/catalog.js";
-import { matchAgents } from "../src/match.js";
+import { matchAgents, type Match } from "../src/match.js";
 import { facilitate, MAX_HIRE_USDC } from "../src/facilitate.js";
 
 function required(name: string): string {
@@ -31,16 +35,33 @@ const client = new AgentClient(
   required("CROO_SDK_KEY"),
 );
 
-const need =
-  process.argv.slice(2).join(" ").trim() ||
-  "audit my smart contract for vulnerabilities";
+// --service <serviceId> pins the exact counterparty (skip matching), so the bounty
+// can hire >=3 DISTINCT agents deterministically instead of whoever accepts first.
+const argv = process.argv.slice(2);
+let pinnedService: string | undefined;
+const si = argv.indexOf("--service");
+if (si !== -1) {
+  pinnedService = argv[si + 1];
+  argv.splice(si, 2);
+}
+const need = argv.join(" ").trim() || "audit my smart contract for vulnerabilities";
 const budget = Number(process.env.PROVE_HIRE_BUDGET) || MAX_HIRE_USDC;
 
 const catalog = await fetchCatalog(process.env.CROO_AGENT_ID);
-const matches = matchAgents(need, catalog);
-if (!matches.length) {
-  console.error(`no match on the live Store for: "${need}"`);
-  process.exit(1);
+let matches: Match[];
+if (pinnedService) {
+  const entry = catalog.find((e) => e.serviceId === pinnedService);
+  if (!entry) {
+    console.error(`--service ${pinnedService} not found in the live catalog`);
+    process.exit(1);
+  }
+  matches = [{ agent: entry, score: 100, reasons: ["pinned via --service"] }];
+} else {
+  matches = matchAgents(need, catalog);
+  if (!matches.length) {
+    console.error(`no match on the live Store for: "${need}"`);
+    process.exit(1);
+  }
 }
 
 console.log(`Need:      "${need}"`);
