@@ -48,6 +48,17 @@ const noTx = renderMarkdown({
 assert.ok(!noTx.includes("basescan.org/tx/)"), "empty tx hash must not emit a broken link");
 assert.ok(noTx.includes("settled in escrow"), "empty tx hash falls back to escrow line");
 
+// Paid but delivery not yet landed (facilitate returns after payment): render a
+// "pending" note, not an empty/broken result block.
+const pending = renderMarkdown({
+  need: "audit",
+  matches: [{ agent: { id: "a", name: "A", description: "", tags: [], priceFrom: 0.1, completion: 100, orders: 50, serviceId: "a" }, score: 100, reasons: [] }],
+  facilitated: { agentId: "a", orderId: "o", payTxHash: "0xdef", rake: 0.01, deliverable: "" },
+});
+assert.ok(/Hired on your behalf/.test(pending), "paid hire must still show as hired");
+assert.ok(/Delivery pending/i.test(pending), "empty deliverable must render a pending note");
+assert.ok(!/Untrusted output/.test(pending), "no untrusted-output block when there's nothing delivered yet");
+
 // Machine-readable JSON: present, parseable, and a ``` in untrusted data can't
 // break out of the fenced block.
 const evil = renderMarkdown({

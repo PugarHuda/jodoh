@@ -44,6 +44,8 @@ const client = new AgentClient(
   required("CROO_SDK_KEY"),
 );
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 interface Req {
   need?: string;
   facilitate?: boolean;
@@ -135,10 +137,29 @@ stream.on(EventType.OrderPaid, async (e) => {
       }
     }
 
-    await client.deliverOrder(orderId, {
-      deliverableType: DeliverableType.Text,
-      deliverableText: renderMarkdown(result),
-    });
+    // Delivery is the buyer's payoff and the order is ALREADY paid. The order is
+    // marked handled, so a replayed OrderPaid won't retry — a transient POST
+    // failure would silently lose the result. Retry a few times before giving up.
+    // ponytail: 3 in-memory retries; a durable outbox would survive a crash too.
+    const deliverableText = renderMarkdown(result);
+    let delivered = false;
+    for (let i = 0; i < 3; i++) {
+      try {
+        await client.deliverOrder(orderId, {
+          deliverableType: DeliverableType.Text,
+          deliverableText,
+        });
+        delivered = true;
+        break;
+      } catch (e) {
+        console.error(`deliver attempt ${i + 1}/3 failed for order ${orderId}:`, e);
+        if (i < 2) await sleep(2000);
+      }
+    }
+    if (!delivered) {
+      console.error(`⚠️  order ${orderId} PAID but UNDELIVERED after retries — re-deliver manually.`);
+      return; // keep pending entry so a manual re-deliver still has the context
+    }
     pending.delete(orderId);
     console.log(
       `delivered order ${orderId} — ${matches.length} matches` +
