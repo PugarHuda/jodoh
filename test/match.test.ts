@@ -48,6 +48,35 @@ const calib = matchAgents("aardvark widget", [
 ]);
 assert.equal(calib[0].agent.id, "newcomer", "better-fit newcomer must outrank worse-fit incumbent");
 
+// A malformed external record (NaN completion/orders) must not poison the shared
+// `max` and NaN every score — one bad API row can't break the whole ranking.
+const poisoned = matchAgents("aardvark widget", [
+  {
+    id: "bad",
+    name: "Bad Data Widget",
+    description: "aardvark widget",
+    tags: ["aardvark", "widget"],
+    priceFrom: 0.1,
+    completion: Number("N/A"), // NaN
+    orders: Number("oops"), // NaN, and >=10 branch would use it
+  },
+  {
+    id: "good",
+    name: "Good Widget",
+    description: "aardvark widget specialist",
+    tags: ["aardvark", "widget"],
+    priceFrom: 0.1,
+    completion: 100,
+    orders: 5000,
+  },
+]);
+assert.ok(poisoned.length > 0, "malformed record must not wipe out all matches");
+assert.ok(
+  poisoned.every((m) => Number.isFinite(m.score)),
+  "every score must be finite despite a NaN-bearing record",
+);
+assert.equal(poisoned[0].agent.id, "good", "the valid, proven agent still wins");
+
 console.log(
-  `PASS  ${cases.length} needs matched to the correct top agent; gibberish rejected; calibration holds.`,
+  `PASS  ${cases.length} needs matched to the correct top agent; gibberish rejected; calibration holds; NaN-record can't poison ranking.`,
 );

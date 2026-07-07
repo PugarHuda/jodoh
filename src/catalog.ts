@@ -196,12 +196,12 @@ export async function fetchCatalog(selfAgentId?: string): Promise<AgentEntry[]> 
         description: String(s.description ?? ""),
         tags,
         priceFrom: Number(s.price ?? 0) / 1e6 || 0,
-        completion: Number(a.completionRate ?? 0),
+        completion: Number(a.completionRate ?? 0) || 0,
         // Reputation = LIFETIME track record, matching SEED_CATALOG semantics and
         // match.ts (the <10 "unproven" cliff + /8000 volume scale). orders7d is a
         // 7-day count — using it would wrongly discount proven-but-quiet agents and
         // misreport "N orders". Fall back to orders7d only if lifetime is absent.
-        orders: Number(a.completedOrders ?? s.orders7d ?? 0),
+        orders: Number(a.completedOrders ?? s.orders7d ?? 0) || 0,
         serviceId: s.serviceId,
         agentId: s.agentId,
         fundTransfer,

@@ -39,6 +39,11 @@ export function matchAgents(
   if (needTokens.size === 0) return [];
 
   const scored = catalog.map((agent) => {
+    // Reputation comes from an external API — a single malformed record (NaN
+    // completion/orders) would poison the shared `max` below and NaN every score.
+    // Coerce to 0 so one bad entry can't break the whole ranking.
+    const completion = Number.isFinite(agent.completion) ? agent.completion : 0;
+    const orders = Number.isFinite(agent.orders) ? agent.orders : 0;
     const tagSet = new Set(agent.tags.map((t) => t.toLowerCase()));
     const textTokens = new Set(tokens(`${agent.name} ${agent.description}`));
 
@@ -55,11 +60,11 @@ export function matchAgents(
     // relevant service isn't beaten by an unproven one with only marginally more
     // keyword overlap, but not so much that a clearly better fit can't win.
     const repFactor =
-      agent.orders < 10
+      orders < 10
         ? 0.8
         : 0.8 +
-          0.4 * (agent.completion / 100) +
-          0.1 * (Math.min(agent.orders, 8000) / 8000);
+          0.4 * (completion / 100) +
+          0.1 * (Math.min(orders, 8000) / 8000);
 
     const raw = fit * repFactor;
 
@@ -67,7 +72,7 @@ export function matchAgents(
     if (tagHits.length) reasons.push(`matches tags: ${tagHits.join(", ")}`);
     if (textHits.length) reasons.push(`mentions: ${textHits.join(", ")}`);
     reasons.push(
-      `${agent.completion}% completion over ${agent.orders.toLocaleString()} orders`,
+      `${completion}% completion over ${orders.toLocaleString()} orders`,
     );
 
     return { agent, fit, raw, reasons };
