@@ -8,7 +8,8 @@
 // we fetch it with getNegotiation. The matching engine (src/match.ts,
 // src/catalog.ts) is SDK-independent and unit-tested.
 import "dotenv/config";
-import { AgentClient, EventType, DeliverableType } from "@croo-network/sdk";
+import { AgentClient, EventType, DeliverableType, OrderStatus } from "@croo-network/sdk";
+import type { Order } from "@croo-network/sdk";
 import { fetchCatalog } from "./catalog.js";
 import { matchAgents } from "./match.js";
 import { facilitate, MAX_HIRE_USDC } from "./facilitate.js";
@@ -92,13 +93,12 @@ stream.on(EventType.NegotiationCreated, async (e) => {
   }
 });
 
-stream.on(EventType.OrderPaid, async (e) => {
-  try {
-    const orderId = e.order_id!;
-    // Idempotency: skip a replayed OrderPaid so we never double-hire / double-pay.
+async function handlePaidOrder(orderId: string, knownOrder?: Order) {
+    // Idempotency: skip a replayed OrderPaid (WS buffer) or an order the reconcile
+    // sweep already picked up, so we never double-hire / double-pay.
     if (handledOrders.has(orderId)) return;
     handledOrders.add(orderId);
-    const order = await client.getOrder(orderId).catch(() => undefined);
+    const order = knownOrder ?? (await client.getOrder(orderId).catch(() => undefined));
     let req = pending.get(orderId);
     if (!req) {
       // Recover if we missed the negotiation (e.g. restart): order -> negotiation.
@@ -165,9 +165,40 @@ stream.on(EventType.OrderPaid, async (e) => {
       `delivered order ${orderId} — ${matches.length} matches` +
         (result.facilitated ? `, hired ${result.facilitated.agentId}` : ""),
     );
+}
+
+stream.on(EventType.OrderPaid, async (e) => {
+  try {
+    await handlePaidOrder(e.order_id!);
   } catch (err) {
     console.error("orderPaid handler error:", err);
   }
 });
 
+// Reconcile missed events: if the WS was briefly disconnected, an OrderPaid can
+// arrive with nobody listening — the buyer paid and Jodoh would never deliver.
+// Sweep provider orders still in "paid" (paid, not yet delivered) and process
+// any we haven't handled. Runs on startup and on an interval. Idempotent via
+// handledOrders. ponytail: 60s poll; tighten if orders must clear faster.
+async function reconcile() {
+  try {
+    const orders = await client.listOrders({ role: "provider" }).catch(() => []);
+    const stuck = orders.filter(
+      (o) => o.status === OrderStatus.Paid && !handledOrders.has(o.orderId),
+    );
+    for (const o of stuck) {
+      console.log(`reconcile: recovering paid-but-undelivered order ${o.orderId}`);
+      await handlePaidOrder(o.orderId, o).catch((err) =>
+        console.error(`reconcile: order ${o.orderId} failed:`, err),
+      );
+    }
+  } catch (err) {
+    console.error("reconcile error:", err);
+  }
+}
+
 console.log("Jodoh matchmaking agent online. Waiting for CAP orders…");
+
+// Catch anything paid while we weren't listening, then keep sweeping.
+await reconcile();
+setInterval(reconcile, 60_000);
