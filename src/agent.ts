@@ -131,7 +131,7 @@ async function handlePaidOrder(orderId: string, knownOrder?: Order, allowFacilit
     }
     console.log(`order ${orderId} paid — matching: "${req.need}"`);
 
-    const catalog = await fetchCatalog(SELF_AGENT_ID);
+    const catalog = await fetchCatalog(SELF_AGENT_ID, [process.env.CROO_SERVICE_ID, HIRE_ID]);
     const matches = matchAgents(req.need, catalog);
     const result: JodohResult = {
       need: req.need,

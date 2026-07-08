@@ -159,8 +159,17 @@ async function fetchAll(path: string, key: string): Promise<any[]> {
  * services — self-trade is disqualifying). Cached 60s. Never hard-fails — falls
  * back to the curated seed on error.
  */
-export async function fetchCatalog(selfAgentId?: string): Promise<AgentEntry[]> {
-  const notSelf = (e: AgentEntry) => !selfAgentId || e.agentId !== selfAgentId;
+export async function fetchCatalog(
+  selfAgentId?: string,
+  selfServiceIds: (string | undefined)[] = [],
+): Promise<AgentEntry[]> {
+  // Exclude Jodoh's own services by agentId AND by serviceId. The serviceId set is
+  // a second guard: if CROO_AGENT_ID is misconfigured (typo/wrong id), agentId
+  // exclusion silently matches nothing and Jodoh could match/hire itself — the
+  // known self service ids close that.
+  const selfSvc = new Set(selfServiceIds.filter(Boolean));
+  const notSelf = (e: AgentEntry) =>
+    (!selfAgentId || e.agentId !== selfAgentId) && !selfSvc.has(e.serviceId ?? e.id);
   if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
     return cache.data.filter(notSelf);
   }

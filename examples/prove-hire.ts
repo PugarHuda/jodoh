@@ -47,7 +47,10 @@ if (si !== -1) {
 const need = argv.join(" ").trim() || "audit my smart contract for vulnerabilities";
 const budget = Number(process.env.PROVE_HIRE_BUDGET) || MAX_HIRE_USDC;
 
-const catalog = await fetchCatalog(process.env.CROO_AGENT_ID);
+const catalog = await fetchCatalog(process.env.CROO_AGENT_ID, [
+  process.env.CROO_SERVICE_ID,
+  process.env.CROO_HIRE_SERVICE_ID,
+]);
 let matches: Match[];
 if (pinnedService) {
   const entry = catalog.find((e) => e.serviceId === pinnedService);
