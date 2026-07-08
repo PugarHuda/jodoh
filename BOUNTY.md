@@ -19,31 +19,32 @@ Onboarding Bounty is the earlier and easier one, so treat it as the first goal.
 | # | Requirement | Status |
 |---|---|---|
 | 1 | Listed on CROO Agent Store (Base mainnet), discoverable, stays listed through review | ✅ Live — agent `Jodoh`, services `find_match` + `hire_match`, online |
-| 2 | Callable through CAP and settles a **real USDC payment** on-chain | ✅ Integrated (`@croo-network/sdk`); ⏳ needs one real settlement |
-| 3 | **≥ 2 completed on-chain CAP transactions** | ⏳ **the one gap — see plan below** |
-| 4 | Submitted before 2026-07-09 23:59 UTC | ⏳ submit after step 3 |
-| — | Anti-abuse: no forks, fake agents, **obvious self-trade loops**, or failed spot-checks | ✅ by design — see below |
+| 2 | Callable through CAP and settles a **real USDC payment** on-chain | ✅ **Settled** — Jodoh hired 3 distinct agents, USDC on Base (see proof) |
+| 3 | **≥ 2 completed on-chain CAP transactions** | ✅ **2 completed** (pay → deliver → clear) + a 3rd paid — see proof |
+| 4 | Submitted before 2026-07-09 23:59 UTC | ⏳ ready to submit — proof below |
+| — | Anti-abuse: no forks, fake agents, **obvious self-trade loops**, or failed spot-checks | ✅ by design — 3 distinct third-party counterparties, no self-trade |
 
-### The plan to get the 2 transactions (no self-trade)
+### ✅ Proof of on-chain settlement (Base mainnet, 2026-07-08)
 
-The buyer simulator using Jodoh's **own** key is a self-order — **explicitly
-disqualifying** here ("no obvious self-trade loops"). Use real, distinct
-counterparties instead. `prove-hire` does exactly this: Jodoh hires a **different**
-live agent over CAP and settles USDC on Base.
+Jodoh (buyer wallet `0x7E02C6Cf8F91FccfBAD17FaE83D2AA3e0551E313`) hired **3 distinct
+third-party agents** over CAP via `npm run prove-hire`, settling real USDC on Base —
+**no self-trade** (Jodoh excludes its own services by `agentId` **and** `serviceId`).
 
-1. Fund Jodoh's wallet (`0x7E02…E313`) with **~$1 USDC on Base** (each hire ≤ 0.25).
-2. Run two hires against **two different** agents, e.g.:
-   ```bash
-   npm run prove-hire -- "audit my smart contract for vulnerabilities"   # → agent A
-   npm run prove-hire -- "track a polymarket whale wallet and its PnL"    # → agent B
-   ```
-   Each prints a Basescan pay-tx link — that's a completed CAP transaction with a
-   distinct counterparty. Two different agents → requirement met, cleanly non-self-trade.
-3. Submit before the deadline.
+| # | Counterparty agent | Order | Status | Pay tx (Basescan) |
+|---|---|---|---|---|
+| 1 | ChainGuard `74775115-…` | `61aa2181-…` | **completed** (pay→deliver→clear) | [`0xe3a881fc…`](https://basescan.org/tx/0xe3a881fcd2a56f3cfebe47fe4ef10e3f3a0339070269278502c7cae228b254a7) |
+| 2 | `e05abaea-…` | `988c08b4-…` | **completed** (pay→deliver→clear) | [`0xc683cb2b…`](https://basescan.org/tx/0xc683cb2b3e1b67351e5c9e1a6a01cc9ca7aae90638a0b8cadbefe206decff5a6) |
+| 3 | DepegGuard `5cbcbd42-…` | `02c517ef-…` | paid (delivering) | [`0xaa1164b2…`](https://basescan.org/tx/0xaa1164b26eaa5fac67ff9a3e91e74caf8720e9b64a926c40851a39fac9572d3a) |
+
+Orders #1 and #2 satisfy **≥ 2 completed on-chain CAP transactions** with distinct
+counterparties. Delivery + escrow-clear tx for the completed orders:
+- #1 deliver `0xd0ee1e08…` · clear `0x45c987c0…`
+- #2 deliver `0x9e6e78b7…` · clear `0x8f892c5d…`
 
 **Anti-abuse safety built in:** Jodoh excludes all of its own services from its match
-catalog (by `agentId`), so it can never hire itself; facilitation is disabled if the
-agent id is unknown; and the buyer sim warns loudly when it would be a self-order.
+catalog (by `agentId` **and** `serviceId`), so it can never hire itself; facilitation
+is disabled if the agent id is unknown; and the buyer sim warns loudly when it would
+be a self-order.
 
 ---
 
@@ -66,10 +67,11 @@ plan and leaderboard in [`LISTING.md`](./LISTING.md) and the live site
 - [x] Listed & online on the CROO Agent Store
 - [x] CAP integration wired and health-verified
 - [x] Open source (MIT), public repo, live site
+- [x] Fund wallet ~$1 USDC on Base
+- [x] **2 completed on-chain CAP hires to distinct agents** (3 done) → **Onboarding Bounty proof**
+- [x] Reached ≥3 unique counterparty agents (ChainGuard, `e05abaea`, DepegGuard)
 - [ ] Fix service prices (find_match 0.10, hire_match 0.25 — currently 10× low)
-- [ ] Fund wallet ~$1 USDC on Base
-- [ ] 2 on-chain CAP hires to 2 different agents (`prove-hire`) → **Onboarding Bounty**
 - [ ] Submit Onboarding Bounty before **2026-07-09 23:59 UTC**
-- [ ] Recruit ≥5 unique buyers + reach ≥3 counterparties → **Hackathon eligibility**
+- [ ] Recruit ≥5 unique **buyers** (agents hiring Jodoh) → **Hackathon eligibility**
 - [ ] Record ≤5-min demo video
 - [ ] File the Hackathon BUIDL before **2026-07-12 16:00**
