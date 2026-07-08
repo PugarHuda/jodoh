@@ -15,7 +15,11 @@ import { matchAgents } from "./match.js";
 import { facilitate, MAX_HIRE_USDC } from "./facilitate.js";
 import { shouldFacilitate, hireBudget } from "./routing.js";
 import { renderMarkdown, type JodohResult } from "./report.js";
-import { safeLogger } from "./log.js";
+import { safeLogger, installConsoleScrub } from "./log.js";
+
+// Scrub the SDK key out of ALL console output (the app's own error logs too, not
+// just the SDK logger) before anything logs.
+installConsoleScrub();
 
 function required(name: string): string {
   const v = process.env[name];
@@ -112,7 +116,12 @@ async function handlePaidOrder(orderId: string, knownOrder?: Order, allowFacilit
     // sweep already picked up, so we never double-hire / double-pay.
     if (handledOrders.has(orderId)) return;
     handledOrders.add(orderId);
-    const order = knownOrder ?? (await client.getOrder(orderId).catch(() => undefined));
+    const order =
+      knownOrder ??
+      (await client.getOrder(orderId).catch((e) => {
+        console.error(`getOrder failed for ${orderId} — facilitation skipped (can't bound spend):`, e);
+        return undefined;
+      }));
     // Already delivered? A replayed OrderPaid after a restart (in-memory
     // handledOrders lost) must not re-hire a sub-agent or re-deliver.
     if (order?.deliveredAt) return;
@@ -158,9 +167,10 @@ async function handlePaidOrder(orderId: string, knownOrder?: Order, allowFacilit
     // skips to the first flat-fee candidate instead of failing when #1 needs the
     // buyer's own funds. Bounded by topN (<=3). Matters most for hire_match,
     // which charged a premium on the promise of a hire.
-    if (req.facilitate && matches.length && SELF_AGENT_ID && allowFacilitate && !facilitatedOrders.has(orderId)) {
+    if (req.facilitate && matches.length && SELF_AGENT_ID && allowFacilitate && order && !facilitatedOrders.has(orderId)) {
       // Never front more than Jodoh earned on this order (bounded by MAX_HIRE_USDC).
-      const budget = hireBudget(order ? Number(order.price) / 1e6 : undefined, MAX_HIRE_USDC);
+      // Requires `order` (accurate price) — without it we can't bound spend, so skip.
+      const budget = hireBudget(Number(order.price) / 1e6, MAX_HIRE_USDC);
       for (const m of matches) {
         const f = await facilitate(client, m, req.need, budget);
         if (f) {
@@ -225,7 +235,15 @@ const UNDELIVERED = new Set<string>([
 ]);
 async function reconcile() {
   try {
-    const orders = await client.listOrders({ role: "provider", pageSize: 100 }).catch(() => []);
+    // Walk ALL pages — a stuck order past page 1 must still be swept (no .catch(()
+    // => []) here: a persistent listOrders failure must surface via the outer catch,
+    // not silently disable the whole recovery net).
+    const orders: Order[] = [];
+    for (let page = 1; page <= 50; page++) {
+      const batch = await client.listOrders({ role: "provider", page, pageSize: 100 });
+      orders.push(...batch);
+      if (batch.length < 100) break;
+    }
     const stuck = orders.filter(
       (o) => UNDELIVERED.has(o.status) && !o.deliveredAt && !handledOrders.has(o.orderId),
     );
@@ -241,6 +259,12 @@ async function reconcile() {
 }
 
 console.log("Jodoh matchmaking agent online. Waiting for CAP orders…");
+// Startup health line: makes a misconfig (e.g. facilitation silently disabled)
+// discoverable instead of a lone warn scrolled past days ago.
+console.log(
+  `config: agentId=${SELF_AGENT_ID ?? "(unset!)"} find=${process.env.CROO_SERVICE_ID ?? "?"} ` +
+    `hire=${HIRE_ID ?? "(unset)"} facilitation=${SELF_AGENT_ID ? "ENABLED" : "DISABLED (set CROO_AGENT_ID)"}`,
+);
 
 // Catch anything paid while we weren't listening, then keep sweeping.
 await reconcile();

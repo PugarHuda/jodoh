@@ -54,49 +54,53 @@ export async function facilitate(
       requirements: JSON.stringify({ need: input }),
     });
 
-    // 2) Wait for the provider to accept -> our order to appear.
+    // 2) Wait for the provider to accept -> our order to reach the payable
+    // "created" state. Filter by status so the default 20-per-page window isn't
+    // consumed by our lifetime buyer orders (paid/completed/expired), which would
+    // let a fresh order fall off page 1 once we've accumulated >20 orders.
     let orderId: string | undefined;
-    let orderPriceUsdc = 0;
     for (let i = 0; i < ACCEPT_TRIES; i++) {
-      // We are the buyer/requester of this sub-order. role is required by the API.
-      // Filter to "created" (the payable state we're waiting for) so the default
-      // 20-per-page window isn't consumed by all our lifetime buyer orders (paid/
-      // completed/expired) — otherwise a fresh order can fall off page 1 and never
-      // be found once we've accumulated >20 orders.
       const orders = await client
         .listOrders({ role: "buyer", status: OrderStatus.Created, pageSize: 100 })
         .catch(() => []);
       const order = orders.find((o) => o.negotiationId === neg.negotiationId);
       if (order) {
-        // Provider declined or the order expired — nothing to pay.
-        if (order.status === OrderStatus.Rejected || order.status === OrderStatus.Expired) return undefined;
-        // Only pay once the order is actually payable ("created"). Grabbing it while
-        // still "creating" (price not yet set) makes payOrder fail on a not-ready order.
-        if (order.status === OrderStatus.Created) {
-          orderId = order.orderId;
-          // listOrders can report price 0 for a fresh order; getOrder has the real
-          // price. Use it so the spend cap below actually bounds the payment.
-          const full = await client.getOrder(order.orderId).catch(() => order);
-          orderPriceUsdc = Number(full.price) / 1e6;
-          break;
-        }
+        orderId = order.orderId;
+        break;
       }
       await sleep(2000);
     }
-    if (!orderId) return undefined;
+    if (!orderId) {
+      console.info(`facilitate: ${serviceId} did not accept within ~${ACCEPT_TRIES * 2}s — skipping`);
+      return undefined;
+    }
 
-    // Spend cap on the ACTUAL order price, not just the advertised priceFrom: the
-    // provider sets order.price at accept time and could exceed the catalog floor
-    // (a misconfigured or malicious provider). Bail before paying if it's over budget.
-    if (!(orderPriceUsdc <= maxSpendUsdc)) return undefined; // also bails on NaN
+    // Accurate price for the spend cap: listOrders reports "0" for a fresh order, so
+    // fetch the real one. Bail on failure — paying without knowing the price would
+    // silently defeat the cap (Jodoh's exposure guarantee).
+    const full = await client.getOrder(orderId).catch(() => undefined);
+    if (!full) {
+      console.error(`facilitate: getOrder failed for sub-order ${orderId} — bailing before pay`);
+      return undefined;
+    }
+    const orderPriceUsdc = Number(full.price) / 1e6;
+    // Spend cap on the ACTUAL order price (a misconfigured/malicious provider could
+    // set it above the catalog floor). Bails on NaN too.
+    if (!(orderPriceUsdc <= maxSpendUsdc)) {
+      console.warn(`facilitate: sub-order ${orderId} priced ${orderPriceUsdc} > budget ${maxSpendUsdc} — skipping`);
+      return undefined;
+    }
 
-    // 3) Pay into escrow (USDC on Base; gas sponsored by CROO). The backend
-    //    pre-checks Jodoh's wallet balance, so this throws if underfunded — bail
-    //    now instead of polling 3 min for a delivery that can't come. Capture the
-    //    tx hash: on-chain proof that Jodoh really hired another agent.
-    const pay = await client.payOrder(orderId).catch(() => undefined);
-    if (!pay) return undefined; // payment failed (e.g. insufficient USDC)
+    // 3) Pay into escrow (USDC on Base; gas sponsored by CROO). Backend pre-checks
+    //    the wallet balance and throws if underfunded — log it (a dry wallet would
+    //    otherwise silently degrade every hire to recommendation-only).
+    const pay = await client.payOrder(orderId).catch((e) => {
+      console.error(`facilitate: payOrder FAILED for sub-order ${orderId} (${orderPriceUsdc} USDC) — insufficient funds or chain error:`, e);
+      return undefined;
+    });
+    if (!pay) return undefined;
     const payTxHash = pay.txHash ?? "";
+    console.log(`facilitate: hired ${serviceId} — sub-order ${orderId} paid ${orderPriceUsdc} USDC (tx ${payTxHash}), awaiting delivery`);
 
     // 4) Poll for the delivered result. The order is ALREADY PAID here, so we must
     //    NOT return undefined on a slow delivery: the caller reads undefined as
@@ -112,12 +116,17 @@ export async function facilitate(
       }
       await sleep(2000);
     }
+    if (!deliverable) {
+      console.warn(
+        `⚠️  facilitate: sub-order ${orderId} PAID (${orderPriceUsdc} USDC) but UNDELIVERED after ~${DELIVER_TRIES * 2}s — funds at risk until the provider delivers or the order expires (escrow refunds).`,
+      );
+    }
 
     const rake = +(top.agent.priceFrom * RAKE_RATE).toFixed(4);
     // agent.id holds the serviceId (see catalog.ts); report the real owning agentId.
     return { agentId: top.agent.agentId ?? top.agent.id, orderId, payTxHash, rake, deliverable };
   } catch (err) {
-    console.warn(`facilitation failed, returning recommendation only: ${String(err)}`);
+    console.warn(`facilitation failed for service ${serviceId}, returning recommendation only:`, err);
     return undefined;
   }
 }
