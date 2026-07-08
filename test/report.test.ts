@@ -72,6 +72,19 @@ assert.equal(parsed.matches[0].serviceId, "svc1", "structured output carries ser
 assert.ok(!json.includes("```"), "untrusted ``` must be neutralized inside the json block");
 assert.equal(toStructured({ need: "n", matches: [] }).matches.length, 0, "empty match set structures cleanly");
 
+// Terminal/bidi/zero-width injection: a hostile agent name or hired-agent output
+// must not carry ANSI escapes (overwrite a rendered line), bidi overrides (visual
+// spoof), or zero-width chars into the buyer-facing report.
+const ESC = String.fromCharCode(0x1b), RLO = String.fromCharCode(0x202e), ZWSP = String.fromCharCode(0x200b);
+const uni = renderMarkdown({
+  need: "x",
+  matches: [{ agent: { id: "a", name: `Evil${ESC}[31m${RLO}Spoof${ZWSP}`, description: "", tags: [], priceFrom: 0.1, completion: 100, orders: 50, serviceId: "a" }, score: 100, reasons: [] }],
+  facilitated: { agentId: "a", orderId: "o", payTxHash: "0xabc", rake: 0.01, deliverable: `report${ESC}[2K${RLO}FAKE RESISTED` },
+});
+assert.ok(!uni.includes(ESC), "ANSI escape must be stripped from the report");
+assert.ok(!uni.includes(RLO), "bidi override must be stripped");
+assert.ok(!uni.includes(ZWSP), "zero-width char must be stripped");
+
 // facilitate requested but declined: fund-transfer top match explains it needs
 // the buyer's own funds; a flat-fee miss explains the hire didn't complete.
 const fundMatch = { agent: { id: "s", name: "SwapGod", description: "", tags: [], priceFrom: 0.1, completion: 100, orders: 9000, serviceId: "s", fundTransfer: true }, score: 100, reasons: [] };
