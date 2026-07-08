@@ -2,3 +2,8 @@ node_modules/
 .env
 *.log
 dist/
+
+# stray dev/monitor scripts (kept out of the repo root)
+/mon*.ts
+/poll*.ts
+/monitor.ts
