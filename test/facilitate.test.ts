@@ -27,7 +27,7 @@ const match: Match = {
 let payCalls = 0;
 const client: any = {
   negotiateOrder: async () => ({ negotiationId: "neg1" }),
-  listOrders: async () => [{ orderId: "ord1", negotiationId: "neg1" }],
+  listOrders: async () => [{ orderId: "ord1", negotiationId: "neg1", price: "100000" }], // 0.10 USDC
   payOrder: async () => {
     payCalls++;
     return { txHash: "0xabc" };
@@ -46,4 +46,20 @@ assert.equal(res!.payTxHash, "0xabc", "on-chain proof surfaced even when deliver
 assert.equal(res!.agentId, "agent1", "reports the real owning agentId, not the serviceId");
 assert.equal(res!.deliverable, "", "no deliverable yet — report renders a 'pending' note");
 
-console.log("PASS  facilitate: pays once, returns after payment (no double-spend), reports real agentId.");
+// M1: the guard is the ADVERTISED priceFrom, but the provider sets the ACTUAL
+// order price at accept time. An order priced over budget must NOT be paid.
+let pay2 = 0;
+const pricey: any = {
+  negotiateOrder: async () => ({ negotiationId: "neg2" }),
+  listOrders: async () => [{ orderId: "ord2", negotiationId: "neg2", price: "300000" }], // 0.30 USDC
+  payOrder: async () => {
+    pay2++;
+    return { txHash: "0x" };
+  },
+  getDelivery: async () => null,
+};
+const over = await facilitate(pricey, match, "need", 0.25);
+assert.equal(over, undefined, "order priced over budget must not be facilitated");
+assert.equal(pay2, 0, "payOrder must NOT be called when the actual order price exceeds budget");
+
+console.log("PASS  facilitate: pays once, no double-spend, real agentId, and won't overpay past budget.");

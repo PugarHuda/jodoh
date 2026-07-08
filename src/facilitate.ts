@@ -55,17 +55,24 @@ export async function facilitate(
 
     // 2) Wait for the provider to accept -> our order to appear.
     let orderId: string | undefined;
+    let orderPriceUsdc = 0;
     for (let i = 0; i < ACCEPT_TRIES; i++) {
       // We are the buyer/requester of this sub-order. role is required by the API.
       const orders = await client.listOrders({ role: "buyer" }).catch(() => []);
       const order = orders.find((o) => o.negotiationId === neg.negotiationId);
       if (order) {
         orderId = order.orderId;
+        orderPriceUsdc = Number(order.price) / 1e6;
         break;
       }
       await sleep(2000);
     }
     if (!orderId) return undefined;
+
+    // Spend cap on the ACTUAL order price, not just the advertised priceFrom: the
+    // provider sets order.price at accept time and could exceed the catalog floor
+    // (a misconfigured or malicious provider). Bail before paying if it's over budget.
+    if (!(orderPriceUsdc <= maxSpendUsdc)) return undefined; // also bails on NaN
 
     // 3) Pay into escrow (USDC on Base; gas sponsored by CROO). The backend
     //    pre-checks Jodoh's wallet balance, so this throws if underfunded — bail

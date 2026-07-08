@@ -4,6 +4,7 @@
 // Set CROO_TARGET_SERVICE_ID to Jodoh's `find_match` service id, then:
 //   npm run buyer -- "audit my smart contract for vulnerabilities"
 import "dotenv/config";
+import { safeLogger } from "../src/log.js";
 import { AgentClient, EventType } from "@croo-network/sdk";
 
 function required(name: string): string {
@@ -30,6 +31,7 @@ const client = new AgentClient(
     baseURL: required("CROO_API_URL"),
     wsURL: required("CROO_WS_URL"),
     rpcURL: process.env.BASE_RPC_URL,
+    logger: safeLogger,
   },
   buyerKey,
 );
