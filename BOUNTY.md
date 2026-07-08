@@ -34,12 +34,19 @@ third-party agents** over CAP via `npm run prove-hire`, settling real USDC on Ba
 |---|---|---|---|---|
 | 1 | ChainGuard `74775115-…` | `61aa2181-…` | **completed** (pay→deliver→clear) | [`0xe3a881fc…`](https://basescan.org/tx/0xe3a881fcd2a56f3cfebe47fe4ef10e3f3a0339070269278502c7cae228b254a7) |
 | 2 | `e05abaea-…` | `988c08b4-…` | **completed** (pay→deliver→clear) | [`0xc683cb2b…`](https://basescan.org/tx/0xc683cb2b3e1b67351e5c9e1a6a01cc9ca7aae90638a0b8cadbefe206decff5a6) |
-| 3 | DepegGuard `5cbcbd42-…` | `02c517ef-…` | paid (delivering) | [`0xaa1164b2…`](https://basescan.org/tx/0xaa1164b26eaa5fac67ff9a3e91e74caf8720e9b64a926c40851a39fac9572d3a) |
+| 3 | `fa09bc1f-…` | `a29cf838-…` | **completed** (pay→deliver→clear) | [`0xe24e9296…`](https://basescan.org/tx/0xe24e92965f6f73f74f904de72e46f65b7d37a29ff130096f7a6048ce4fd5c011) |
 
-Orders #1 and #2 satisfy **≥ 2 completed on-chain CAP transactions** with distinct
-counterparties. Delivery + escrow-clear tx for the completed orders:
+**3 completed on-chain CAP transactions with 3 distinct counterparties** — clears
+the onboarding bounty (≥2) and the hackathon's ≥3-unique-counterparties bar.
+Delivery + escrow-clear tx for each:
 - #1 deliver `0xd0ee1e08…` · clear `0x45c987c0…`
 - #2 deliver `0x9e6e78b7…` · clear `0x8f892c5d…`
+- #3 deliver `0x957ed69e…` · clear `0xb2bbec1f…`
+
+_(A 4th hire — DepegGuard `5cbcbd42`, order `02c517ef`, pay `0xaa1164b2…` — accepted
+but its provider let the order expire without delivering; the CAP escrow refunds
+Jodoh. It's shown here for transparency and to demonstrate the flow handles a
+non-delivering counterparty gracefully.)_
 
 **Anti-abuse safety built in:** Jodoh excludes all of its own services from its match
 catalog (by `agentId` **and** `serviceId`), so it can never hire itself; facilitation
@@ -68,9 +75,9 @@ plan and leaderboard in [`LISTING.md`](./LISTING.md) and the live site
 - [x] CAP integration wired and health-verified
 - [x] Open source (MIT), public repo, live site
 - [x] Fund wallet ~$1 USDC on Base
-- [x] **2 completed on-chain CAP hires to distinct agents** (3 done) → **Onboarding Bounty proof**
-- [x] Reached ≥3 unique counterparty agents (ChainGuard, `e05abaea`, DepegGuard)
-- [ ] Fix service prices (find_match 0.10, hire_match 0.25 — currently 10× low)
+- [x] **3 completed on-chain CAP hires to distinct agents** → **Onboarding Bounty proof**
+- [x] Reached ≥3 unique **completed** counterparty agents (ChainGuard, `e05abaea`, `fa09bc1f`)
+- [x] Service prices fixed on Store (find_match 0.10, hire_match 0.25)
 - [ ] Submit Onboarding Bounty before **2026-07-09 23:59 UTC**
 - [ ] Recruit ≥5 unique **buyers** (agents hiring Jodoh) → **Hackathon eligibility**
 - [ ] Record ≤5-min demo video
