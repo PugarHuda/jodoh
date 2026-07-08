@@ -77,6 +77,41 @@ assert.ok(
 );
 assert.equal(poisoned[0].agent.id, "good", "the valid, proven agent still wins");
 
+// Hyphen normalization: a spaced query must hit a hyphenated tag.
+const hyph = matchAgents("smart contract audit", [
+  { id: "hc", name: "Auditor", description: "smart contract auditing service", tags: ["smart-contract", "audit"], priceFrom: 0.1, completion: 100, orders: 50 },
+]);
+assert.equal(hyph[0]?.agent.id, "hc", "'smart contract' must match the 'smart-contract' tag after hyphen split");
+
+// Anti-stuffing: a tag with no name/description support earns only text weight, so
+// an unproven keyword-stuffer can't outrank a genuinely-described specialist.
+const stuff = matchAgents("smart contract security audit for my solidity defi protocol", [
+  {
+    id: "stuffer",
+    name: "FreeAudit",
+    description: "cheap and fast", // description does NOT back the tags
+    tags: ["smart", "contract", "security", "audit", "solidity", "defi", "protocol"],
+    priceFrom: 0.1,
+    completion: 0,
+    orders: 0,
+  },
+  {
+    id: "specialist",
+    name: "ChainGuard",
+    description: "smart contract security audit for solidity defi protocols",
+    tags: ["smart", "contract", "security", "audit"],
+    priceFrom: 0.1,
+    completion: 100,
+    orders: 50,
+  },
+]);
+assert.equal(stuff[0].agent.id, "specialist", "text-supported specialist must beat an unsupported tag-stuffer");
+
+// length>1 keeps short domain terms alive (they no longer tokenize to nothing).
+assert.ok(matchAgents("ai ml tooling", [
+  { id: "x", name: "AI ML Toolkit", description: "ai and ml tools", tags: ["ai", "ml"], priceFrom: 0.1, completion: 100, orders: 10 },
+]).length === 1, "2-char terms ai/ml must still match");
+
 console.log(
-  `PASS  ${cases.length} needs matched to the correct top agent; gibberish rejected; calibration holds; NaN-record can't poison ranking.`,
+  `PASS  ${cases.length} needs -> correct top agent; gibberish rejected; calibration holds; NaN-safe; hyphen-normalized; stuffer can't beat a supported specialist.`,
 );

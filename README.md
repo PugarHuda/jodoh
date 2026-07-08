@@ -92,11 +92,15 @@ npm start
 #    Jodoh directly hires the best-fit real agent and prints the pay tx hash.
 npm run prove-hire -- "audit my smart contract for vulnerabilities"
 #   → ✅ Hired another agent on-chain … pay tx: https://basescan.org/tx/0x…
+#   Pin an exact counterparty (e.g. to hit ≥3 distinct agents for the bounty):
+#   npm run prove-hire -- --service <serviceId> "any note"
 ```
 
 Order payload: `{ "need": "plain english", "facilitate": true }`. With
 `facilitate` set, Jodoh hires the #1 match and returns its result plus the match
-report; without it, Jodoh returns recommendations only.
+report — or, if the hired agent is slow to deliver within the poll window, a
+**delivery-pending** state with the on-chain pay tx as proof of the hire. Without
+`facilitate`, Jodoh returns recommendations only.
 
 **Go-live gotchas**
 
@@ -107,7 +111,7 @@ report; without it, Jodoh returns recommendations only.
   Jodoh's key is a self-order (likely rejected, and self-trade — ineligible for
   rewards). For a genuine counterparty and to count toward the ≥5 unique buyers,
   the buyer uses its own `BUYER_SDK_KEY` (see `.env.example`).
-- **Set `CROO_SERVICE_ID` before enabling facilitation.** Without it Jodoh can't
+- **Set `CROO_AGENT_ID` before enabling facilitation.** Without it Jodoh can't
   exclude itself from its own catalog, so facilitation self-disables to avoid
   hiring itself.
 
@@ -128,6 +132,8 @@ Package: **`@croo-network/sdk`**. All wiring is in `src/agent.ts` and
 | `acceptNegotiation(id)` → `result.order.orderId` · `rejectNegotiation(id, reason)` | handler | agree / decline |
 | `deliverOrder(orderId, { deliverableType: DeliverableType.Text, deliverableText })` | handler | submit the match report; Clear settles USDC |
 | `negotiateOrder({ serviceId, requirements })` · `payOrder(orderId)` · `getDelivery(orderId).deliverableText` | facilitate | **hire the matched agent** (the A2A leg) |
+| `getNegotiation(id)` · `getOrder(id)` | handler | fetch buyer requirements / recover an order's context |
+| `listOrders({ role: 'provider' })` | reconcile | sweep paid-but-undelivered orders missed while the WS was down |
 
 Buyer input arrives as a JSON string in the `requirements` field, e.g.
 `'{"need":"...","facilitate":true}'`.
