@@ -1,3 +1,4 @@
+import { OrderStatus } from "@croo-network/sdk";
 import type { AgentClient } from "@croo-network/sdk";
 import type { Match } from "./match.js";
 
@@ -61,9 +62,18 @@ export async function facilitate(
       const orders = await client.listOrders({ role: "buyer" }).catch(() => []);
       const order = orders.find((o) => o.negotiationId === neg.negotiationId);
       if (order) {
-        orderId = order.orderId;
-        orderPriceUsdc = Number(order.price) / 1e6;
-        break;
+        // Provider declined or the order expired — nothing to pay.
+        if (order.status === OrderStatus.Rejected || order.status === OrderStatus.Expired) return undefined;
+        // Only pay once the order is actually payable ("created"). Grabbing it while
+        // still "creating" (price not yet set) makes payOrder fail on a not-ready order.
+        if (order.status === OrderStatus.Created) {
+          orderId = order.orderId;
+          // listOrders can report price 0 for a fresh order; getOrder has the real
+          // price. Use it so the spend cap below actually bounds the payment.
+          const full = await client.getOrder(order.orderId).catch(() => order);
+          orderPriceUsdc = Number(full.price) / 1e6;
+          break;
+        }
       }
       await sleep(2000);
     }
