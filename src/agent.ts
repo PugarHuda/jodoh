@@ -74,9 +74,13 @@ function parseReq(requirements: string | undefined): Req {
 // Stash the parsed need against the order id so we have it when payment lands.
 const pending = new Map<string, Req>();
 
-// Orders already handled — a replayed OrderPaid (WS reconnect/buffer) must not
-// re-run matching or, worse, facilitate and PAY a sub-order a second time.
+// Orders currently being processed / delivered — guards against re-running work.
+// Cleared on a failure path so reconcile/replay can retry DELIVERY.
 const handledOrders = new Set<string>();
+// Orders we already PAID a sub-hire for. Separate from handledOrders so that
+// clearing handledOrders to retry a failed DELIVERY can never re-trigger a second
+// on-chain facilitation payment. Never cleared within a process run.
+const facilitatedOrders = new Set<string>();
 
 const stream = await client.connectWebSocket();
 
@@ -121,9 +125,17 @@ async function handlePaidOrder(orderId: string, knownOrder?: Order, allowFacilit
         handledOrders.delete(orderId);
         return;
       }
-      const neg = await client.getNegotiation(order.negotiationId);
-      req = parseReq(neg.requirements);
-      req.facilitate = shouldFacilitate(!!req.facilitate, order.serviceId, HIRE_ID);
+      try {
+        const neg = await client.getNegotiation(order.negotiationId);
+        req = parseReq(neg.requirements);
+        req.facilitate = shouldFacilitate(!!req.facilitate, order.serviceId, HIRE_ID);
+      } catch (e) {
+        // Transient fetch failure — un-mark so a replay/reconcile can retry
+        // instead of the order being stuck as "handled" forever.
+        handledOrders.delete(orderId);
+        console.error(`recover requirements failed for order ${orderId}:`, e);
+        return;
+      }
     }
     if (!req.need) {
       handledOrders.delete(orderId); // nothing to do; allow a retry if req arrives later
@@ -146,13 +158,14 @@ async function handlePaidOrder(orderId: string, knownOrder?: Order, allowFacilit
     // skips to the first flat-fee candidate instead of failing when #1 needs the
     // buyer's own funds. Bounded by topN (<=3). Matters most for hire_match,
     // which charged a premium on the promise of a hire.
-    if (req.facilitate && matches.length && SELF_AGENT_ID && allowFacilitate) {
+    if (req.facilitate && matches.length && SELF_AGENT_ID && allowFacilitate && !facilitatedOrders.has(orderId)) {
       // Never front more than Jodoh earned on this order (bounded by MAX_HIRE_USDC).
       const budget = hireBudget(order ? Number(order.price) / 1e6 : undefined, MAX_HIRE_USDC);
       for (const m of matches) {
         const f = await facilitate(client, m, req.need, budget);
         if (f) {
           result.facilitated = f;
+          facilitatedOrders.add(orderId); // paid a sub-hire — never facilitate this order again
           break;
         }
       }
@@ -178,8 +191,11 @@ async function handlePaidOrder(orderId: string, knownOrder?: Order, allowFacilit
       }
     }
     if (!delivered) {
-      console.error(`⚠️  order ${orderId} PAID but UNDELIVERED after retries — re-deliver manually.`);
-      return; // keep pending entry so a manual re-deliver still has the context
+      console.error(`⚠️  order ${orderId} PAID but UNDELIVERED after retries — reconcile will retry delivery.`);
+      // Un-mark so reconcile (and a WS replay) can retry DELIVERY. A second
+      // facilitation is impossible: it's guarded by facilitatedOrders above.
+      handledOrders.delete(orderId);
+      return; // keep pending so a retry still has the context
     }
     pending.delete(orderId);
     console.log(
@@ -209,7 +225,7 @@ const UNDELIVERED = new Set<string>([
 ]);
 async function reconcile() {
   try {
-    const orders = await client.listOrders({ role: "provider" }).catch(() => []);
+    const orders = await client.listOrders({ role: "provider", pageSize: 100 }).catch(() => []);
     const stuck = orders.filter(
       (o) => UNDELIVERED.has(o.status) && !o.deliveredAt && !handledOrders.has(o.orderId),
     );

@@ -27,7 +27,9 @@ const match: Match = {
 let payCalls = 0;
 const client: any = {
   negotiateOrder: async () => ({ negotiationId: "neg1" }),
-  listOrders: async () => [{ orderId: "ord1", negotiationId: "neg1", price: "100000" }], // 0.10 USDC
+  // status "created" = payable; facilitate waits for it and filters listOrders by it.
+  listOrders: async () => [{ orderId: "ord1", negotiationId: "neg1", price: "100000", status: "created" }],
+  getOrder: async () => ({ orderId: "ord1", price: "100000", status: "created" }), // accurate price source
   payOrder: async () => {
     payCalls++;
     return { txHash: "0xabc" };
@@ -51,7 +53,8 @@ assert.equal(res!.deliverable, "", "no deliverable yet — report renders a 'pen
 let pay2 = 0;
 const pricey: any = {
   negotiateOrder: async () => ({ negotiationId: "neg2" }),
-  listOrders: async () => [{ orderId: "ord2", negotiationId: "neg2", price: "300000" }], // 0.30 USDC
+  listOrders: async () => [{ orderId: "ord2", negotiationId: "neg2", price: "0", status: "created" }], // listOrders reports 0
+  getOrder: async () => ({ orderId: "ord2", price: "300000", status: "created" }), // real price 0.30 > budget
   payOrder: async () => {
     pay2++;
     return { txHash: "0x" };

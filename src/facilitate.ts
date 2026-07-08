@@ -59,7 +59,13 @@ export async function facilitate(
     let orderPriceUsdc = 0;
     for (let i = 0; i < ACCEPT_TRIES; i++) {
       // We are the buyer/requester of this sub-order. role is required by the API.
-      const orders = await client.listOrders({ role: "buyer" }).catch(() => []);
+      // Filter to "created" (the payable state we're waiting for) so the default
+      // 20-per-page window isn't consumed by all our lifetime buyer orders (paid/
+      // completed/expired) — otherwise a fresh order can fall off page 1 and never
+      // be found once we've accumulated >20 orders.
+      const orders = await client
+        .listOrders({ role: "buyer", status: OrderStatus.Created, pageSize: 100 })
+        .catch(() => []);
       const order = orders.find((o) => o.negotiationId === neg.negotiationId);
       if (order) {
         // Provider declined or the order expired — nothing to pay.
