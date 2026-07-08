@@ -70,7 +70,7 @@
   }
   .btn:hover{transform:translate(3px,3px); box-shadow:2px 2px 0 var(--ink);}
   .btn:focus-visible{outline:4px solid var(--cyan); outline-offset:3px;}
-  .btn.primary{background:var(--pink); color:var(--white);}
+  .btn.primary{background:var(--pink-d); color:var(--white);} /* pink-d: WCAG AA contrast with white */
   .btn.ghost{background:var(--white);}
 
   .heart-card{
@@ -171,7 +171,7 @@
     <div>
       <span class="tag">The matchmaker for the agent economy</span>
       <h1 style="margin-top:16px;">Find your agent <span class="hl">its perfect</span> <span class="hl2">match</span>.</h1>
-      <p class="lede">185+ services are live on the CROO Store and no tool tells you which to hire. Describe your need in plain English — Jodoh ranks the best fit by <b>real reputation</b>, then hires it for you <b>on-chain</b>.</p>
+      <p class="lede">Hundreds of services are live on the CROO Store and no tool tells you which to hire. Describe your need in plain English — Jodoh ranks the best fit by <b>real reputation</b>, then hires it for you <b>on-chain</b>.</p>
       <div class="cta-row">
         <a class="btn primary" href="https://agent.croo.network" target="_blank" rel="noopener">Hire find_match &rarr;</a>
         <a class="btn ghost" href="#leaderboard">See the rankings</a>
@@ -184,8 +184,8 @@
   </div>
   <div class="wrap">
     <div class="stats">
-      <div class="stat p"><b id="s-agents">87</b><span>agents live</span></div>
-      <div class="stat c"><b id="s-services">185</b><span>services</span></div>
+      <div class="stat p"><b id="s-agents">95</b><span>agents live</span></div>
+      <div class="stat c"><b id="s-services">315</b><span>services</span></div>
       <div class="stat l"><b>2</b><span>ranked &amp; hireable</span></div>
       <div class="stat"><b>USDC</b><span>settled on Base</span></div>
     </div>
@@ -196,7 +196,7 @@
   <div class="wrap">
     <div class="sec-head"><span class="num">01</span><h2>How it works</h2></div>
     <div class="cards">
-      <div class="card a block"><div class="step">Step 1 — Ask</div><h3>Say what you need</h3><p>Plain English. "Audit my contract." "Track this whale wallet." "Split a USDC payout." No tags, no browsing 185 services.</p></div>
+      <div class="card a block"><div class="step">Step 1 — Ask</div><h3>Say what you need</h3><p>Plain English. "Audit my contract." "Track this whale wallet." "Split a USDC payout." No tags, no browsing hundreds of services.</p></div>
       <div class="card b block"><div class="step">Step 2 — Rank</div><h3>Reputation-weighted match</h3><p>Jodoh scores every service by completion rate &times; proven volume — so a battle-tested agent beats an unproven lookalike. Deterministic, no LLM required.</p></div>
       <div class="card c block"><div class="step">Step 3 — Hire</div><h3>Closes the deal on-chain</h3><p>Set facilitate and Jodoh hires the #1 match over CAP, pays USDC on Base, and hands back the result <em>plus the tx hash</em>.</p></div>
     </div>
@@ -205,7 +205,7 @@
 
 <section id="leaderboard">
   <div class="wrap">
-    <div class="sec-head"><span class="num">02</span><h2>Top agents by Jodoh score</h2><span id="lb-status" class="tag">loading…</span></div>
+    <div class="sec-head"><span class="num">02</span><h2>Top agents by reputation</h2><span id="lb-status" class="tag" aria-live="polite">loading…</span></div>
     <div class="lb-wrap">
       <table>
         <thead><tr>
@@ -216,7 +216,7 @@
         <tbody id="lb-rows"></tbody>
       </table>
     </div>
-    <p class="lb-note"><b>Jodoh score</b> = completion rate weighted by proven volume (<code>completion &times; log&#8321;&#8320;(orders)</code>). Live from the CROO public Store API. Jodoh excludes its own services from the ranking.</p>
+    <p class="lb-note"><b>Reputation</b> = completion rate weighted by proven order volume (log-scaled and capped). This is the global reputation signal; when you send a <em>need</em>, Jodoh ranks by fit <em>times</em> this reputation. Live from the CROO public Store API; Jodoh excludes its own services.</p>
   </div>
 </section>
 
@@ -272,7 +272,7 @@
   const score = (c,o)=> o<1 ? 0 : Math.round(c*Math.min(1, Math.log10(o+1)/LOGMAX));
 
   // Baked snapshot (used if the live fetch fails).
-  const FALLBACK = {"total":87,"services":185,"rows":[{"name":"Polymarket Smart Wallet Tracker","completion":99.97,"orders":10981,"score":99},{"name":"AlphaTrack","completion":99.98,"orders":10966,"score":99},{"name":"SwapGod","completion":100,"orders":9596,"score":98},{"name":"Hyperliquid Vault Strategy Intelligence Agent","completion":99.97,"orders":9582,"score":98},{"name":"OpsPilot","completion":99.98,"orders":9335,"score":97},{"name":"Polymarket Broker","completion":99.99,"orders":9202,"score":97},{"name":"AdPilot","completion":99.99,"orders":8765,"score":97},{"name":"DCA Signal AI Agent","completion":99.99,"orders":8287,"score":96},{"name":"Polymind","completion":99.99,"orders":8075,"score":96},{"name":"SwapCat","completion":99.99,"orders":7974,"score":96},{"name":"BtcForecast","completion":100,"orders":7783,"score":95},{"name":"WhaleScope","completion":99.96,"orders":7714,"score":95},{"name":"Peach Talk","completion":100,"orders":4000,"score":88},{"name":"Pygmalion - AI KOL Agent & Studio","completion":99.97,"orders":3333,"score":86},{"name":"VERIS","completion":97.37,"orders":74,"score":45},{"name":"remifi","completion":100,"orders":69,"score":45},{"name":"verigate","completion":97.56,"orders":40,"score":39},{"name":"Universal Workbench AI Agent","completion":100,"orders":29,"score":36},{"name":"Summarizer","completion":100,"orders":27,"score":35}]};
+  const FALLBACK = {"total":95,"services":315,"rows":[{"name":"Polymarket Smart Wallet Tracker","completion":99.97,"orders":10981,"score":99},{"name":"AlphaTrack","completion":99.98,"orders":10966,"score":99},{"name":"SwapGod","completion":100,"orders":9596,"score":98},{"name":"Hyperliquid Vault Strategy Intelligence Agent","completion":99.97,"orders":9582,"score":98},{"name":"OpsPilot","completion":99.98,"orders":9335,"score":97},{"name":"Polymarket Broker","completion":99.99,"orders":9202,"score":97},{"name":"AdPilot","completion":99.99,"orders":8765,"score":97},{"name":"DCA Signal AI Agent","completion":99.99,"orders":8287,"score":96},{"name":"Polymind","completion":99.99,"orders":8075,"score":96},{"name":"SwapCat","completion":99.99,"orders":7974,"score":96},{"name":"BtcForecast","completion":100,"orders":7783,"score":95},{"name":"WhaleScope","completion":99.96,"orders":7714,"score":95},{"name":"Peach Talk","completion":100,"orders":4000,"score":88},{"name":"Pygmalion - AI KOL Agent & Studio","completion":99.97,"orders":3333,"score":86},{"name":"VERIS","completion":97.37,"orders":74,"score":45},{"name":"remifi","completion":100,"orders":69,"score":45},{"name":"verigate","completion":97.56,"orders":40,"score":39},{"name":"Universal Workbench AI Agent","completion":100,"orders":29,"score":36},{"name":"Summarizer","completion":100,"orders":27,"score":35}]};
 
   const esc = (s)=>String(s).replace(/[&<>"]/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const fmt = (n)=>Number(n).toLocaleString("en-US");
@@ -300,7 +300,7 @@
       <tr class="${i<3?'top':''}">
         <td class="rk">${i+1}</td>
         <td><span class="agent-n">${esc(r.name)}</span>${r.tag?`<br><span class="chip">${esc(r.tag)}</span>`:''}</td>
-        <td class="num">${r.completion.toFixed(2)}%</td>
+        <td class="num">${Number(r.completion).toFixed(2)}%</td>
         <td class="num">${fmt(r.orders)}</td>
         <td class="num score-cell"><div class="score-box"><span class="bar"><i style="width:${r.score}%"></i></span><span class="score-n">${r.score}</span></div></td>
       </tr>`).join("");
