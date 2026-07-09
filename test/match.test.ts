@@ -107,6 +107,16 @@ const stuff = matchAgents("smart contract security audit for my solidity defi pr
 ]);
 assert.equal(stuff[0].agent.id, "specialist", "text-supported specialist must beat an unsupported tag-stuffer");
 
+// Reputation floor (the orders<10 "unproven cliff"): a proven agent must beat a
+// marginally-better-fit UNPROVEN one — otherwise a brand-new agent claiming 100%
+// completion could out-rank a battle-tested one. Pins the cliff so it can't be
+// silently removed.
+const cliff = matchAgents("aardvark beaver cat", [
+  { id: "unproven", name: "New", description: "aardvark beaver cat specialist", tags: ["aardvark", "beaver", "cat"], priceFrom: 0.1, completion: 100, orders: 2 },
+  { id: "proven", name: "Veteran", description: "aardvark beaver expert", tags: ["aardvark", "beaver"], priceFrom: 0.1, completion: 100, orders: 8000 },
+]);
+assert.equal(cliff[0].agent.id, "proven", "a proven agent must beat a marginally-better-fit unproven one (reputation floor)");
+
 // length>1 keeps short domain terms alive (they no longer tokenize to nothing).
 assert.ok(matchAgents("ai ml tooling", [
   { id: "x", name: "AI ML Toolkit", description: "ai and ml tools", tags: ["ai", "ml"], priceFrom: 0.1, completion: 100, orders: 10 },
