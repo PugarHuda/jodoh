@@ -61,6 +61,15 @@ const poisoned = matchAgents("aardvark widget", [
     orders: Number("oops"), // NaN, and >=10 branch would use it
   },
   {
+    id: "bad2",
+    name: "Bad Data Widget Two",
+    description: "aardvark widget",
+    tags: ["aardvark", "widget"],
+    priceFrom: 0.1,
+    completion: Number("N/A"), // NaN — AND orders>=10, so repFactor's completion branch USES it
+    orders: 5000,
+  },
+  {
     id: "good",
     name: "Good Widget",
     description: "aardvark widget specialist",
@@ -116,6 +125,20 @@ const cliff = matchAgents("aardvark beaver cat", [
   { id: "proven", name: "Veteran", description: "aardvark beaver expert", tags: ["aardvark", "beaver"], priceFrom: 0.1, completion: 100, orders: 8000 },
 ]);
 assert.equal(cliff[0].agent.id, "proven", "a proven agent must beat a marginally-better-fit unproven one (reputation floor)");
+
+// Supported-tag 2x weighting, isolated from reputation: with EQUAL reputation, a
+// text-supported specialist must beat a raw tag-stuffer. (The stuffer is listed
+// FIRST so that if the 2x weight were dropped the two would tie and the stable
+// sort would surface the stuffer — this pins the weighting, not just the ordering.)
+const weight = matchAgents("alpha bravo charlie delta", [
+  { id: "stuffer", name: "X", description: "unrelated filler", tags: ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel"], priceFrom: 0.1, completion: 100, orders: 50 },
+  { id: "supported", name: "Alpha Bravo Charlie Delta Service", description: "alpha bravo charlie delta", tags: ["alpha", "bravo", "charlie", "delta"], priceFrom: 0.1, completion: 100, orders: 50 },
+]);
+assert.equal(weight[0].agent.id, "supported", "with equal reputation, text-supported tags (weighted 2x) must beat a raw tag-stuffer");
+
+// topN: a broad need matching several agents must return multiple ranked matches,
+// not collapse to a single recommendation.
+assert.ok(matchAgents("data", SEED_CATALOG).length > 1, "a broad need must return multiple ranked matches (topN)");
 
 // length>1 keeps short domain terms alive (they no longer tokenize to nothing).
 assert.ok(matchAgents("ai ml tooling", [
