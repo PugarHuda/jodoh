@@ -85,6 +85,47 @@ assert.ok(!uni.includes(ESC), "ANSI escape must be stripped from the report");
 assert.ok(!uni.includes(RLO), "bidi override must be stripped");
 assert.ok(!uni.includes(ZWSP), "zero-width char must be stripped");
 
+// A backtick in an untrusted name/id must be stripped from the human report: it's
+// embedded in bold/inline-code spans, so a stray ` opens a code span and lets a
+// hostile catalog entry inject markdown. (cell() strips backticks.)
+const BT = String.fromCharCode(96);
+const btOut = renderMarkdown({
+  need: "x",
+  matches: [{ agent: { id: `id${BT}x`, name: `Na${BT}me`, description: "", tags: [], priceFrom: 0.1, completion: 100, orders: 50 }, score: 100, reasons: [] }],
+});
+// The human section legitimately contains code-span backticks (around id/tx), so
+// assert the specific backtick-BEARING name/id strings don't survive there.
+const btHuman = btOut.slice(0, btOut.indexOf("```json"));
+assert.ok(
+  !btHuman.includes(`Na${BT}me`) && !btHuman.includes(`id${BT}x`),
+  "backtick in an untrusted name/id must be stripped from the human report (no code-span injection)",
+);
+
+// A hired agent's raw output containing ``` must be neutralized so it can't close
+// the untrusted-output fence early and inject markdown after it (A2A output-hijack).
+// NB: newline-free breakout on purpose — UNSAFE already strips newlines, so a
+// \n-adjacent check would pass even with the fence-neutralize removed (a false pass).
+const fenceEvil = renderMarkdown({
+  need: "x",
+  matches: [{ agent: { id: "a", name: "A", description: "", tags: [], priceFrom: 0.1, completion: 100, orders: 50, serviceId: "a" }, score: 100, reasons: [] }],
+  facilitated: { agentId: "a", orderId: "o", payTxHash: "0xabc", rake: 0.01, deliverable: `safe ${BT}${BT}${BT}BREAKOUT${BT}${BT}${BT} tail` },
+});
+assert.ok(
+  !fenceEvil.includes(`${BT}${BT}${BT}BREAKOUT`),
+  "hired output's ``` must be neutralized so it can't break out of the fence",
+);
+
+// An over-long untrusted agent name must be truncated in the human report so a
+// hostile 5KB name can't bloat the table / paid deliverable. (cell() caps at 120.)
+const capOut = renderMarkdown({
+  need: "x",
+  matches: [{ agent: { id: "a", name: "z".repeat(5000), description: "", tags: [], priceFrom: 0.1, completion: 100, orders: 50 }, score: 100, reasons: [] }],
+});
+assert.ok(
+  !capOut.slice(0, capOut.indexOf("```json")).includes("z".repeat(200)),
+  "an over-long untrusted name must be truncated in the human report",
+);
+
 // facilitate requested but declined: fund-transfer top match explains it needs
 // the buyer's own funds; a flat-fee miss explains the hire didn't complete.
 const fundMatch = { agent: { id: "s", name: "SwapGod", description: "", tags: [], priceFrom: 0.1, completion: 100, orders: 9000, serviceId: "s", fundTransfer: true }, score: 100, reasons: [] };
