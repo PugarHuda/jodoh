@@ -71,7 +71,7 @@ a result holds up under a human spot-check. No LLM required to run or grade it.
 
 ## Quick start
 
-Requires Node.js 18+.
+Requires Node.js 20+.
 
 ```bash
 npm install

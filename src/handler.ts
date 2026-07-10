@@ -132,7 +132,7 @@ export function createOrderHandler(client: AgentClient, cfg: HandlerConfig = {})
     // Hire the top match that's actually hireable: facilitate() fast-returns
     // (no polling) for fund-transfer / no-serviceId / over-cap matches, so this
     // skips to the first flat-fee candidate instead of failing when #1 needs the
-    // buyer's own funds. Bounded by topN (<=3). Matters most for hire_match,
+    // buyer's own funds. Bounded by topN (matchAgents default 5). Matters most for hire_match,
     // which charged a premium on the promise of a hire.
     if (req.facilitate && matches.length && selfAgentId && allowFacilitate && order && !facilitatedOrders.has(orderId)) {
       // Never front more than Jodoh earned on this order (bounded by MAX_HIRE_USDC).
@@ -194,7 +194,10 @@ export function createOrderHandler(client: AgentClient, cfg: HandlerConfig = {})
       for (let page = 1; page <= 50; page++) {
         const batch = await client.listOrders({ role: "provider", page, pageSize: 100 });
         orders.push(...batch);
-        if (batch.length < 100) break;
+        // Stop only on an empty page — NOT on `< pageSize`. The server may clamp
+        // pageSize (the sibling public API caps at 50), so a short-but-nonempty page
+        // is normal and a stuck order on a later page must still be swept.
+        if (!batch.length) break;
       }
       const stuck = orders.filter(
         (o) => UNDELIVERED.has(o.status) && !o.deliveredAt && !handledOrders.has(o.orderId),
