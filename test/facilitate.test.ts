@@ -65,4 +65,71 @@ const over = await facilitate(pricey, match, "need", 0.25);
 assert.equal(over, undefined, "order priced over budget must not be facilitated");
 assert.equal(pay2, 0, "payOrder must NOT be called when the actual order price exceeds budget");
 
-console.log("PASS  facilitate: pays once, no double-spend, real agentId, and won't overpay past budget.");
+// ── Pre-flight guards must short-circuit BEFORE any network/spend ────────────
+// A spy client that records whether it was ever touched. facilitate() must never
+// negotiate/pay when a match is disqualified up front.
+function spyClient(over: any = {}) {
+  const calls = { negotiate: 0, pay: 0, getOrder: 0 };
+  return {
+    calls,
+    client: {
+      negotiateOrder: async () => {
+        calls.negotiate++;
+        return { negotiationId: "n" };
+      },
+      listOrders: async () => [{ orderId: "o", negotiationId: "n", price: "100000", status: "created" }],
+      getOrder: async () => {
+        calls.getOrder++;
+        return over.getOrder === undefined ? { orderId: "o", price: "100000", status: "created" } : over.getOrder;
+      },
+      payOrder: async () => {
+        calls.pay++;
+        if (over.payThrows) throw new Error("pay boom");
+        return { txHash: "0xok" };
+      },
+      getDelivery: async () => null,
+      ...over.client,
+    } as any,
+  };
+}
+
+// (a) No serviceId — can't hire; must not even negotiate.
+{
+  const { client, calls } = spyClient();
+  const r = await facilitate(client, { ...match, agent: { ...match.agent, serviceId: undefined } }, "need", 0.25);
+  assert.equal(r, undefined, "a match without a serviceId can't be hired");
+  assert.equal(calls.negotiate, 0, "no negotiation for an unhireable match");
+}
+
+// (b) Fund-transfer service — Jodoh can't move the buyer's principal; must not hire.
+{
+  const { client, calls } = spyClient();
+  const r = await facilitate(client, { ...match, agent: { ...match.agent, fundTransfer: true } }, "need", 0.25);
+  assert.equal(r, undefined, "a fund-transfer service must not be auto-hired");
+  assert.equal(calls.negotiate, 0, "no negotiation for a fund-transfer service");
+}
+
+// (c) Catalog price already over budget — skip before spending anything.
+{
+  const { client, calls } = spyClient();
+  const r = await facilitate(client, { ...match, agent: { ...match.agent, priceFrom: 0.5 } }, "need", 0.25);
+  assert.equal(r, undefined, "a catalog price over budget must be skipped up front");
+  assert.equal(calls.negotiate, 0, "no negotiation when the advertised price already exceeds budget");
+}
+
+// (d) getOrder fails after accept — can't bound spend, so must bail before paying.
+{
+  const { client, calls } = spyClient({ getOrder: undefined, client: { getOrder: async () => undefined } });
+  const r = await facilitate(client, match, "need", 0.25);
+  assert.equal(r, undefined, "can't confirm price -> must not pay");
+  assert.equal(calls.pay, 0, "payOrder must NOT run when the order price can't be fetched");
+}
+
+// (e) payOrder fails — no Facilitation (caller then falls back to recommendation).
+{
+  const { client } = spyClient({ payThrows: true });
+  const r = await facilitate(client, match, "need", 0.25);
+  assert.equal(r, undefined, "a failed payment must not report a hire");
+}
+
+console.log("PASS  facilitate: pays once, no double-spend, real agentId, won't overpay, and every pre-flight guard blocks spend.");
