@@ -12,7 +12,7 @@
     "buyer": "tsx examples/requester.ts",
     "prove-hire": "tsx examples/prove-hire.ts",
     "health": "tsx examples/healthcheck.ts",
-    "test": "tsx test/match.test.ts && tsx test/report.test.ts && tsx test/routing.test.ts && tsx test/facilitate.test.ts && tsx test/handler.test.ts && tsx test/log.test.ts"
+    "test": "tsx test/match.test.ts && tsx test/catalog.test.ts && tsx test/report.test.ts && tsx test/routing.test.ts && tsx test/facilitate.test.ts && tsx test/handler.test.ts && tsx test/log.test.ts"
   },
   "dependencies": {
     "@croo-network/sdk": "^0.2.1",
