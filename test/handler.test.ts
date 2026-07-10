@@ -66,7 +66,8 @@ function makeClient(o: ClientOverrides = {}) {
 // (or undefined to simulate an unhireable match).
 function makeHire(result?: Facilitation) {
   const seen: Array<{ match: Match; input: string; budget: number }> = [];
-  const hire = async (_c: any, match: Match, input: string, budget: number) => {
+  // budget defaults so this matches `typeof facilitate` (its maxSpendUsdc is optional).
+  const hire = async (_c: any, match: Match, input: string, budget = 0) => {
     seen.push({ match, input, budget });
     return result;
   };
@@ -172,6 +173,10 @@ assert.equal(parseReq('{"need":"x","facilitate":true}').facilitate, true, "facil
 {
   const { hire, seen } = makeHire(FACIL);
   const { client, calls, delivered } = makeClient({
+    // The recovered negotiation REQUESTS facilitation (facilitate:true). Without
+    // the allowFacilitate=false guard, reconcile would hire — so seen.length===0
+    // genuinely pins the guard, not a masked-off req.facilitate.
+    negotiation: { requirements: JSON.stringify({ need: "aardvark widget", facilitate: true }) },
     listOrders: [
       { orderId: "r1", price: "200000", negotiationId: "n1", serviceId: "s1", status: "paid" },
       { orderId: "r2", price: "200000", negotiationId: "n2", serviceId: "s2", status: "completed" }, // not undelivered
@@ -182,7 +187,7 @@ assert.equal(parseReq('{"need":"x","facilitate":true}').facilitate, true, "facil
   // negotiation recovery supplies the need (no pending entry after a "restart")
   await h.reconcile();
 
-  assert.equal(seen.length, 0, "reconcile must NEVER hire (non-idempotent spend across restart)");
+  assert.equal(seen.length, 0, "reconcile must NEVER hire even when the order requested it (non-idempotent spend across restart)");
   assert.equal(calls.deliver, 1, "only the single paid-but-undelivered order (r1) is delivered");
   assert.ok(delivered[0].deliverableText.length > 0, "r1 got a discovery delivery");
 }
