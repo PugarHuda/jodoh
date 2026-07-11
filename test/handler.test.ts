@@ -35,7 +35,7 @@ interface ClientOverrides {
 
 // Build a mock AgentClient exposing only the methods handler.ts calls, plus call
 // counters/captures for assertions.
-function makeClient(o: ClientOverrides & { listNegotiations?: any[] } = {}) {
+function makeClient(o: ClientOverrides & { listNegotiations?: any[]; listNegThrows?: boolean } = {}) {
   const calls = { getOrder: 0, getNegotiation: 0, deliver: 0, listOrders: 0, accept: 0, reject: 0, listNeg: 0 };
   const delivered: any[] = [];
   const rejected: string[] = [];
@@ -72,6 +72,7 @@ function makeClient(o: ClientOverrides & { listNegotiations?: any[] } = {}) {
     },
     async listNegotiations(q: any) {
       calls.listNeg++;
+      if (o.listNegThrows) throw new Error("listNegotiations boom");
       return (q?.page ?? 1) > 1 ? [] : (o.listNegotiations ?? []);
     },
   };
@@ -283,6 +284,18 @@ assert.equal(parseReq('{"need":"x","facilitate":true}').facilitate, true, "facil
   const h = createOrderHandler(client, baseCfg());
   await h.handleNegotiation("neg4");
   assert.equal(calls.accept, 0, "an already-accepted negotiation is not re-accepted");
+}
+
+// ── 12b. reconcile: a negotiation-sweep failure must NOT skip the order sweep ──
+{
+  const { hire } = makeHire(FACIL);
+  const { client, calls } = makeClient({
+    listNegThrows: true, // negotiation recovery blows up
+    listOrders: [{ orderId: "r-decouple", price: "100000", negotiationId: "n", serviceId: "s", status: "paid" }],
+  });
+  const h = createOrderHandler(client, baseCfg({ hire }));
+  await h.reconcile();
+  assert.equal(calls.deliver, 1, "paid-order sweep still runs even when the negotiation sweep throws (decoupled nets)");
 }
 
 // ── 13. reconcile recovers a missed (still-Pending) negotiation ───────────────
