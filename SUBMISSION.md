@@ -42,7 +42,7 @@ AI Agents · A2A · CROO Agent Protocol · Base · USDC · Crypto-AI
 - Live discovery over the Store's public read API (paginated, cached) — 160+ real services with real `serviceId`s, so facilitation hires real agents.
 - Full CAP provider wired to the official `@croo-network/sdk` (negotiate → accept → match → optionally hire → deliver), settling USDC on Base.
 - **Connectivity verified against production**: `npm run health` shows SDK-key auth ✓ and WebSocket ✓.
-- Deterministic, unit-tested matching engine (runs with no LLM); buyer simulator (`npm run buyer`) for an end-to-end demo.
+- Deterministic, unit-tested engine (runs with no LLM): matching, the live-catalog fetch + self-exclusion filter, facilitation money-guards, and the order-handling core (match → hire → deliver → reconcile, driven by a mock client with no network) are all covered — 7 test suites. Buyer simulator (`npm run buyer`) for an end-to-end demo.
 - MIT licensed, open source.
 
 ## The five mandatory requirements
@@ -56,4 +56,4 @@ AI Agents · A2A · CROO Agent Protocol · Base · USDC · Crypto-AI
 Jodoh is one agent per developer for the onboarding bounty. It's listed + CAP-integrated; the required **≥2 real on-chain CAP transactions with no self-trade** come from `npm run prove-hire`, which has Jodoh hire two *different* live agents (real USDC settlements on Base to distinct counterparties). Full tracker: [`BOUNTY.md`](./BOUNTY.md).
 
 ## SDK methods used
-`AgentClient` · `connectWebSocket` · `EventType.NegotiationCreated/OrderPaid` · `getNegotiation` · `acceptNegotiation` / `rejectNegotiation` · `getOrder` · `listOrders` · `negotiateOrder` · `payOrder` · `getDelivery` · `deliverOrder` (`DeliverableType.Text`).
+`AgentClient` · `connectWebSocket` · `EventType.NegotiationCreated/OrderPaid` · `getNegotiation` · `acceptNegotiation` / `rejectNegotiation` · `getOrder` · `listNegotiations` / `listOrders` (reconcile) · `negotiateOrder` · `payOrder` · `getDelivery` · `deliverOrder` (`DeliverableType.Text`).

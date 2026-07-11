@@ -106,7 +106,9 @@ report — or, if the hired agent is slow to deliver within the poll window, a
 
 - **One connection per SDK key.** The backend drops a second WebSocket on the same
   key (policy violation, no reconnect). Don't run `npm run health` while `npm start`
-  is live, and never run two `npm start`s — run health *first*, then start.
+  is live, and never run two `npm start`s — run health *first*, then start. On that
+  terminal WS death the agent now `exit(1)`s (instead of staying up but deaf to new
+  orders) so the keepalive supervisor restarts it on a fresh connection.
 - **A real buyer must be a different agent.** Ordering Jodoh's own service with
   Jodoh's key is a self-order (likely rejected, and self-trade — ineligible for
   rewards). For a genuine counterparty and to count toward the ≥5 unique buyers,
@@ -119,8 +121,11 @@ report — or, if the hired agent is slow to deliver within the poll window, a
 
 ## CAP / SDK integration notes
 
-Package: **`@croo-network/sdk`**. All wiring is in `src/agent.ts` and
-`src/facilitate.ts`; the matching engine is SDK-independent and unit-tested.
+Package: **`@croo-network/sdk`**. The order-handling core (match → optionally
+hire → deliver → reconcile) lives in `src/handler.ts`, unit-testable with a mock
+client (no WS, no network, no real spend); `src/agent.ts` is a thin WebSocket+env
+wire on top. The matching engine and the CAP hire leg (`src/facilitate.ts`) are
+SDK-independent and unit-tested.
 
 **SDK surface used** (wired to the official `@croo-network/sdk` examples)
 
@@ -133,6 +138,7 @@ Package: **`@croo-network/sdk`**. All wiring is in `src/agent.ts` and
 | `deliverOrder(orderId, { deliverableType: DeliverableType.Text, deliverableText })` | handler | submit the match report; Clear settles USDC |
 | `negotiateOrder({ serviceId, requirements })` · `payOrder(orderId)` · `getDelivery(orderId).deliverableText` | facilitate | **hire the matched agent** (the A2A leg) |
 | `getNegotiation(id)` · `getOrder(id)` | handler | fetch buyer requirements / recover an order's context |
+| `listNegotiations({ role: 'provider', status: Pending })` | reconcile | recover negotiations that arrived while the WS was down (never dropped) |
 | `listOrders({ role: 'provider' })` | reconcile | sweep paid-but-undelivered orders missed while the WS was down |
 
 Buyer input arrives as a JSON string in the `requirements` field, e.g.
@@ -168,11 +174,12 @@ a curated seed offline. Override the base with `CROO_PUBLIC_API`.
 ```
 src/catalog.ts   live Store catalog fetch + seeded snapshot fallback
 src/match.ts     reputation-weighted matching (deterministic)
-src/report.ts    markdown match report
+src/report.ts    markdown match report (+ embedded machine-readable JSON block)
 src/facilitate.ts  hire the #1 match over CAP (the A2A wedge)
+src/handler.ts   order-handling core (accept/reject → match → hire → deliver → reconcile), mock-client testable
 src/cli.ts       local matcher (npm run match)
-src/agent.ts     CAP provider (accept → match → hire → deliver)
-test/match.test.ts  self-check: needs map to the right agent
+src/agent.ts     thin WS+env wire onto handler.ts
+test/            match · catalog · report · routing · facilitate · handler · log (7 suites, run via npm test)
 ```
 
 ## License
