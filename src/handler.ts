@@ -3,8 +3,8 @@
 // real on-chain spend). agent.ts is now a thin wire: env -> createOrderHandler ->
 // stream.on. Every guard/comment here encodes a real, previously-shipped bug fix;
 // don't drop them.
-import { DeliverableType, OrderStatus } from "@croo-network/sdk";
-import type { AgentClient, Order } from "@croo-network/sdk";
+import { DeliverableType, OrderStatus, NegotiationStatus } from "@croo-network/sdk";
+import type { AgentClient, Order, Negotiation } from "@croo-network/sdk";
 import { fetchCatalog, type AgentEntry } from "./catalog.js";
 import { matchAgents } from "./match.js";
 import { facilitate, MAX_HIRE_USDC } from "./facilitate.js";
@@ -73,6 +73,61 @@ export function createOrderHandler(client: AgentClient, cfg: HandlerConfig = {})
   // clearing handledOrders to retry a failed DELIVERY can never re-trigger a second
   // on-chain facilitation payment. Never cleared within a process run.
   const facilitatedOrders = new Set<string>();
+  // Negotiations already accepted/rejected — guards the WS handler and the recovery
+  // sweep from double-accepting the same negotiation.
+  const handledNegotiations = new Set<string>();
+
+  // Accept (or reject) a negotiation: parse the need, reject if absent, else accept
+  // and stash the parsed requirements against the new order id. Shared by the live
+  // WS NegotiationCreated handler and the recovery sweep (a negotiation that arrived
+  // while the WS was down would otherwise be silently dropped and never become an
+  // order). knownNeg is supplied by the sweep (from listNegotiations) to skip a fetch.
+  async function handleNegotiation(negId: string, knownNeg?: Negotiation) {
+    if (handledNegotiations.has(negId)) return;
+    handledNegotiations.add(negId);
+    try {
+      const neg = knownNeg ?? (await client.getNegotiation(negId));
+      // Raced: another path (or a past run) already resolved it. Leave it marked.
+      if (neg.status && neg.status !== NegotiationStatus.Pending) return;
+      const req = parseReq(neg.requirements);
+      if (!req.need) {
+        await client.rejectNegotiation(negId, "missing 'need' in requirements");
+        return;
+      }
+      // hire_match orders force facilitation; find_match respects the flag.
+      req.facilitate = shouldFacilitate(!!req.facilitate, neg.serviceId, hireId);
+      const res = await client.acceptNegotiation(negId);
+      pending.set(res.order.orderId, req);
+      console.log(`accepted negotiation ${negId} -> order ${res.order.orderId}`);
+    } catch (err) {
+      handledNegotiations.delete(negId); // transient failure — allow a later retry
+      console.error("negotiation handler error:", err);
+    }
+  }
+
+  // Recover negotiations that arrived while the WS was disconnected: the event was
+  // never delivered, so without this sweep the buyer's request is dropped and never
+  // becomes an order. Walk the still-Pending provider negotiations and handle them.
+  async function reconcileNegotiations() {
+    const negs: Negotiation[] = [];
+    for (let page = 1; page <= 50; page++) {
+      const batch = await client.listNegotiations({
+        role: "provider",
+        status: NegotiationStatus.Pending,
+        page,
+        pageSize: 100,
+      });
+      negs.push(...batch);
+      if (!batch.length) break;
+    }
+    for (const n of negs) {
+      if (handledNegotiations.has(n.negotiationId)) continue;
+      console.log(`reconcile: recovering un-accepted negotiation ${n.negotiationId}`);
+      await handleNegotiation(n.negotiationId, n).catch((err) =>
+        console.error(`reconcile: negotiation ${n.negotiationId} failed:`, err),
+      );
+    }
+  }
 
   // allowFacilitate=false is passed by reconcile: paying a sub-order is not
   // idempotent across a restart (in-memory state is lost), so the recovery sweep
@@ -187,6 +242,9 @@ export function createOrderHandler(client: AgentClient, cfg: HandlerConfig = {})
   // already delivered. allowFacilitate=false: recovery never re-hires (non-idempotent).
   async function reconcile() {
     try {
+      // First recover any negotiations missed during a WS gap (accepting them
+      // creates the orders the order-sweep below then processes).
+      await reconcileNegotiations();
       // Walk ALL pages — a stuck order past page 1 must still be swept (no .catch(()
       // => []) here: a persistent listOrders failure must surface via the outer catch,
       // not silently disable the whole recovery net).
@@ -213,5 +271,5 @@ export function createOrderHandler(client: AgentClient, cfg: HandlerConfig = {})
     }
   }
 
-  return { handlePaidOrder, reconcile, pending, handledOrders, facilitatedOrders };
+  return { handlePaidOrder, handleNegotiation, reconcile, pending, handledOrders, facilitatedOrders, handledNegotiations };
 }

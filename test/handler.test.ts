@@ -35,9 +35,11 @@ interface ClientOverrides {
 
 // Build a mock AgentClient exposing only the methods handler.ts calls, plus call
 // counters/captures for assertions.
-function makeClient(o: ClientOverrides = {}) {
-  const calls = { getOrder: 0, getNegotiation: 0, deliver: 0, listOrders: 0 };
+function makeClient(o: ClientOverrides & { listNegotiations?: any[] } = {}) {
+  const calls = { getOrder: 0, getNegotiation: 0, deliver: 0, listOrders: 0, accept: 0, reject: 0, listNeg: 0 };
   const delivered: any[] = [];
+  const rejected: string[] = [];
+  let acceptedOrderSeq = 0;
   const client = {
     async getOrder(_id: string) {
       calls.getOrder++;
@@ -60,8 +62,20 @@ function makeClient(o: ClientOverrides = {}) {
       // page 1 and nothing after.
       return (q?.page ?? 1) > 1 ? [] : (o.listOrders ?? []);
     },
+    async acceptNegotiation(_id: string) {
+      calls.accept++;
+      return { order: { orderId: `accepted-${++acceptedOrderSeq}` } };
+    },
+    async rejectNegotiation(_id: string, reason: string) {
+      calls.reject++;
+      rejected.push(reason);
+    },
+    async listNegotiations(q: any) {
+      calls.listNeg++;
+      return (q?.page ?? 1) > 1 ? [] : (o.listNegotiations ?? []);
+    },
   };
-  return { client: client as any, calls, delivered };
+  return { client: client as any, calls, delivered, rejected };
 }
 
 // A hire spy: records what it was called with and returns a canned Facilitation
@@ -231,6 +245,55 @@ assert.equal(parseReq('{"need":"x","facilitate":true}').facilitate, true, "facil
   await h.handlePaidOrder("o8");
 
   assert.equal(seen.length, 0, "unknown self id disables facilitation (can't exclude self => no hire)");
+}
+
+// ── 9. handleNegotiation: accept a valid need, stash the parsed req ───────────
+{
+  const { hire } = makeHire(FACIL);
+  const { client, calls } = makeClient();
+  const h = createOrderHandler(client, baseCfg({ hire }));
+  await h.handleNegotiation("neg1"); // getNegotiation returns a valid need
+  assert.equal(calls.accept, 1, "a valid negotiation is accepted");
+  assert.equal(calls.reject, 0, "not rejected");
+  assert.ok(h.pending.has("accepted-1"), "parsed req stashed against the new order id");
+}
+
+// ── 10. handleNegotiation: reject when there's no need ────────────────────────
+{
+  const { client, calls, rejected } = makeClient({ negotiation: { requirements: "{}" } });
+  const h = createOrderHandler(client, baseCfg());
+  await h.handleNegotiation("neg2");
+  assert.equal(calls.accept, 0, "a needless negotiation is not accepted");
+  assert.equal(calls.reject, 1, "it is rejected");
+  assert.ok(/need/i.test(rejected[0]), "reject reason mentions the missing need");
+}
+
+// ── 11. handleNegotiation: idempotent (no double-accept on replay) ────────────
+{
+  const { client, calls } = makeClient();
+  const h = createOrderHandler(client, baseCfg());
+  await h.handleNegotiation("neg3");
+  await h.handleNegotiation("neg3");
+  assert.equal(calls.accept, 1, "a replayed NegotiationCreated must not double-accept");
+}
+
+// ── 12. handleNegotiation: skip a non-Pending negotiation ─────────────────────
+{
+  const { client, calls } = makeClient({ negotiation: { status: "accepted", requirements: JSON.stringify({ need: "x" }) } });
+  const h = createOrderHandler(client, baseCfg());
+  await h.handleNegotiation("neg4");
+  assert.equal(calls.accept, 0, "an already-accepted negotiation is not re-accepted");
+}
+
+// ── 13. reconcile recovers a missed (still-Pending) negotiation ───────────────
+{
+  const { client, calls } = makeClient({
+    listNegotiations: [{ negotiationId: "recover-neg", status: "pending", requirements: JSON.stringify({ need: "aardvark widget" }) }],
+  });
+  const h = createOrderHandler(client, baseCfg());
+  await h.reconcile();
+  assert.equal(calls.accept, 1, "reconcile accepts a negotiation missed during a WS gap");
+  assert.ok(h.handledNegotiations.has("recover-neg"), "recovered negotiation is marked handled");
 }
 
 console.log(

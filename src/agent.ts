@@ -9,8 +9,7 @@
 // src/catalog.ts) is SDK-independent and unit-tested.
 import "dotenv/config";
 import { AgentClient, EventType } from "@croo-network/sdk";
-import { shouldFacilitate } from "./routing.js";
-import { parseReq, createOrderHandler } from "./handler.js";
+import { createOrderHandler } from "./handler.js";
 import { safeLogger, installConsoleScrub } from "./log.js";
 
 // Scrub the SDK key out of ALL console output (the app's own error logs too, not
@@ -50,7 +49,7 @@ const client = new AgentClient(
 // The order-handling core (matching, facilitation, delivery, reconcile) lives in
 // handler.ts so it's unit-testable with a mock client. This file only wires it to
 // the live WS + env.
-const { handlePaidOrder, reconcile, pending } = createOrderHandler(client, {
+const { handlePaidOrder, handleNegotiation, reconcile } = createOrderHandler(client, {
   selfAgentId: SELF_AGENT_ID,
   hireId: HIRE_ID,
   findServiceId: process.env.CROO_SERVICE_ID,
@@ -71,22 +70,7 @@ setInterval(() => {
 }, 30_000);
 
 stream.on(EventType.NegotiationCreated, async (e) => {
-  try {
-    const negId = e.negotiation_id!;
-    const neg = await client.getNegotiation(negId);
-    const req = parseReq(neg.requirements);
-    if (!req.need) {
-      await client.rejectNegotiation(negId, "missing 'need' in requirements");
-      return;
-    }
-    // hire_match orders force facilitation; find_match respects the flag.
-    req.facilitate = shouldFacilitate(!!req.facilitate, neg.serviceId, HIRE_ID);
-    const res = await client.acceptNegotiation(negId);
-    pending.set(res.order.orderId, req);
-    console.log(`accepted negotiation ${negId} -> order ${res.order.orderId}`);
-  } catch (err) {
-    console.error("negotiation handler error:", err);
-  }
+  await handleNegotiation(e.negotiation_id!);
 });
 
 stream.on(EventType.OrderPaid, async (e) => {
