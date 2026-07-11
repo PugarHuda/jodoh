@@ -243,8 +243,10 @@ export function createOrderHandler(client: AgentClient, cfg: HandlerConfig = {})
   async function reconcile() {
     try {
       // First recover any negotiations missed during a WS gap (accepting them
-      // creates the orders the order-sweep below then processes).
-      await reconcileNegotiations();
+      // creates the orders the order-sweep below then processes). Its own catch:
+      // a listNegotiations failure must NOT skip the paid-order sweep below — the
+      // two recovery nets are independent.
+      await reconcileNegotiations().catch((err) => console.error("reconcile negotiations error:", err));
       // Walk ALL pages — a stuck order past page 1 must still be swept (no .catch(()
       // => []) here: a persistent listOrders failure must surface via the outer catch,
       // not silently disable the whole recovery net).
