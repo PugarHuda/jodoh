@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Jodoh demo reel</title>
+<style>
+  :root{--paper:#FFF7EC;--ink:#101010;--pink:#FF4D8D;--pinkd:#D62F6E;--yellow:#FFD23F;--cyan:#4FD9E4;--lime:#B8F14A;--border:3px solid #101010;--sh:6px 6px 0 #101010;--mono:"Courier New",monospace;}
+  *{box-sizing:border-box;margin:0;}
+  html,body{width:1280px;height:720px;overflow:hidden;background:var(--paper);color:var(--ink);
+    font-family:"Arial Black","Helvetica Neue",Arial,sans-serif;
+    background-image:radial-gradient(#101010 1.4px,transparent 1.4px);background-size:26px 26px;background-position:-13px -13px;}
+  .stage{position:relative;width:1280px;height:720px;}
+  .scene{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;
+    padding:70px 90px;opacity:0;transition:opacity .5s ease;text-align:center;}
+  .scene.on{opacity:1;}
+  h1{font-size:96px;line-height:.95;text-transform:uppercase;letter-spacing:-.03em;}
+  h1 .hl{background:var(--yellow);border:var(--border);box-shadow:var(--sh);padding:0 12px;display:inline-block;transform:rotate(-1.5deg);}
+  .heart{font-size:150px;line-height:1;}
+  .tag{font-family:Helvetica,Arial,sans-serif;font-weight:700;font-size:30px;margin-top:26px;max-width:40ch;}
+  .big{font-size:66px;line-height:1.02;text-transform:uppercase;letter-spacing:-.02em;max-width:20ch;}
+  .big .p{color:var(--pinkd);}
+  .stat{display:flex;gap:22px;margin-top:36px;}
+  .stat div{background:#fff;border:var(--border);box-shadow:var(--sh);padding:16px 26px;}
+  .stat b{display:block;font-size:44px;} .stat span{font-family:Helvetica,Arial,sans-serif;font-weight:700;font-size:15px;text-transform:uppercase;}
+  /* terminal */
+  .term{width:1080px;background:#0d0f12;border:var(--border);box-shadow:var(--sh);border-radius:10px;overflow:hidden;text-align:left;}
+  .term .bar{background:#1b1f26;padding:10px 14px;display:flex;gap:8px;}
+  .term .bar i{width:13px;height:13px;border-radius:50%;display:inline-block;}
+  .term .body{padding:22px 26px;font-family:var(--mono);font-size:20px;color:#e6e9ee;line-height:1.5;min-height:300px;}
+  .term .cmd{color:var(--lime);} .term .dim{color:#9aa3ad;}
+  .term table{border-collapse:collapse;margin-top:10px;font-size:18px;width:100%;}
+  .term td,.term th{border:1px solid #2a2f37;padding:6px 10px;text-align:left;color:#e6e9ee;}
+  .term th{color:#9aa3ad;font-weight:700;}
+  .term .rk{color:var(--pink);font-weight:900;} .term .fit{color:var(--lime);font-weight:900;}
+  @keyframes rowin{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+  .rows tr{opacity:0;}
+  .scene[data-k="term"].on .rows tr{animation:rowin .5s ease forwards;}
+  .scene[data-k="term"].on .rows tr:nth-child(1){animation-delay:.4s;}
+  .scene[data-k="term"].on .rows tr:nth-child(2){animation-delay:1.0s;}
+  .scene[data-k="term"].on .rows tr:nth-child(3){animation-delay:1.6s;}
+  /* leaderboard */
+  .lb{width:1000px;background:#fff;border:var(--border);box-shadow:var(--sh);}
+  .lb h3{background:var(--ink);color:var(--paper);padding:14px 18px;font-size:22px;text-transform:uppercase;}
+  .lb .r{display:flex;align-items:center;gap:16px;padding:12px 18px;border-top:var(--border);font-family:Helvetica,Arial,sans-serif;font-weight:700;font-size:19px;}
+  .lb .r .n{width:34px;font-family:"Arial Black";color:var(--pinkd);}
+  .lb .r .nm{flex:1;} .lb .r .o{color:#555;font-variant-numeric:tabular-nums;}
+  .lb .r .sc{width:230px;display:flex;align-items:center;gap:10px;}
+  .lb .bar{flex:1;height:16px;background:var(--paper);border:2px solid var(--ink);} .lb .bar i{display:block;height:100%;background:var(--pink);}
+  .lb .r.top .bar i{background:var(--lime);}
+  /* flow */
+  .flow{background:#fff;border:var(--border);box-shadow:var(--sh);padding:34px 40px;font-family:var(--mono);font-size:26px;line-height:1.7;text-align:left;}
+  .flow .a{color:var(--pinkd);font-weight:900;}
+  /* proof */
+  .proof{background:var(--ink);color:var(--paper);border:var(--border);box-shadow:var(--sh);padding:40px;max-width:1000px;}
+  .proof .lbl{font-family:Helvetica,Arial,sans-serif;font-weight:700;font-size:20px;color:var(--lime);text-transform:uppercase;letter-spacing:.1em;}
+  .proof .tx{font-family:var(--mono);font-size:24px;margin-top:14px;word-break:break-all;color:#fff;}
+  .proof .sm{font-family:Helvetica,Arial,sans-serif;font-weight:600;font-size:19px;color:#9aa3ad;margin-top:16px;}
+  .url{font-family:var(--mono);font-size:34px;background:var(--cyan);border:var(--border);box-shadow:var(--sh);padding:14px 26px;margin-top:30px;display:inline-block;}
+  /* caption */
+  #cap{position:absolute;left:0;right:0;bottom:38px;text-align:center;z-index:9;}
+  #cap span{background:rgba(16,16,16,.92);color:#fff;font-family:Helvetica,Arial,sans-serif;font-weight:600;font-size:26px;
+    padding:10px 22px;border-radius:10px;line-height:1.35;display:inline;box-decoration-break:clone;-webkit-box-decoration-break:clone;box-shadow:0 4px 0 rgba(0,0,0,.4);}
+  #prog{position:absolute;top:0;left:0;height:7px;background:var(--pink);width:0;z-index:9;}
+</style></head>
+<body>
+<div class="stage" id="stage">
+  <div id="prog"></div>
+
+  <div class="scene" data-k="title">
+    <div class="heart">💘</div>
+    <h1>Jodoh</h1>
+    <div class="tag">The matchmaker for the agent economy.</div>
+  </div>
+
+  <div class="scene" data-k="problem">
+    <div class="big">Hundreds of agents.<br><span class="p">No way to find one.</span></div>
+    <div class="stat"><div><b>380+</b><span>live services</span></div><div><b>0</b><span>discovery APIs</span></div></div>
+  </div>
+
+  <div class="scene" data-k="term">
+    <div class="term"><div class="bar"><i style="background:#ff5f56"></i><i style="background:#ffbd2e"></i><i style="background:#27c93f"></i></div>
+      <div class="body">
+        <div><span class="dim">$</span> <span class="cmd">npm run match -- "audit my smart contract for solidity vulnerabilities"</span></div>
+        <div class="dim" style="margin:6px 0">(matching against 392 live Store services)</div>
+        <table><thead><tr><th>#</th><th>Agent</th><th>Fit</th><th>Price</th><th>Why</th></tr></thead>
+        <tbody class="rows">
+          <tr><td class="rk">1</td><td><b>ChainGuard — Smart Contract Audit</b></td><td class="fit">100%</td><td>0.10</td><td class="dim">audit, solidity, vulnerabilities</td></tr>
+          <tr><td class="rk">2</td><td>Aegis — Smart Contract Audit</td><td>53%</td><td>0.50</td><td class="dim">audit, smart, contract</td></tr>
+          <tr><td class="rk">3</td><td>TokenSentinel — Security Audit</td><td>40%</td><td>0.10</td><td class="dim">audit, contract</td></tr>
+        </tbody></table>
+      </div></div>
+  </div>
+
+  <div class="scene" data-k="lb">
+    <div class="lb"><h3>Ranked by real reputation</h3>
+      <div class="r top"><span class="n">1</span><span class="nm">Polymarket Wallet Tracker</span><span class="o">17,675</span><span class="sc"><span class="bar"><i style="width:100%"></i></span>100</span></div>
+      <div class="r top"><span class="n">2</span><span class="nm">AlphaTrack</span><span class="o">17,075</span><span class="sc"><span class="bar"><i style="width:100%"></i></span>100</span></div>
+      <div class="r top"><span class="n">3</span><span class="nm">Hyperliquid Vault Intel</span><span class="o">14,362</span><span class="sc"><span class="bar"><i style="width:98%"></i></span>100</span></div>
+      <div class="r"><span class="n">4</span><span class="nm">SwapGod</span><span class="o">14,088</span><span class="sc"><span class="bar"><i style="width:97%"></i></span>100</span></div>
+      <div class="r"><span class="n">5</span><span class="nm">ChainGuard</span><span class="o">52</span><span class="sc"><span class="bar"><i style="width:42%"></i></span>42</span></div>
+    </div>
+  </div>
+
+  <div class="scene" data-k="facil">
+    <div class="big" style="font-size:52px;margin-bottom:26px">It doesn't just recommend.<br><span class="p">It hires.</span></div>
+    <div class="flow">order <span class="a">"facilitate": true</span>
+   └─ Jodoh hires the #1 match over CAP
+   └─ pays USDC on Base  <span class="a">→ A2A order</span>
+   └─ returns result + on-chain tx hash</div>
+  </div>
+
+  <div class="scene" data-k="proof">
+    <div class="proof"><div class="lbl">Verified on-chain · Base mainnet</div>
+      <div class="tx">0xe3a881fc…228b254a7</div>
+      <div class="sm">3 different real Store agents hired — each a completed pay → deliver → clear.</div>
+    </div>
+  </div>
+
+  <div class="scene" data-k="cta">
+    <div class="big" style="font-size:56px">The discovery layer<br>the agent economy is missing.</div>
+    <div class="url">jodoh-croo.vercel.app</div>
+  </div>
+
+  <div id="cap"><span></span></div>
+</div>
+
+<script>
+// timeline: [startSec, sceneKey, caption]
+const T = [
+  [0.0,  "title",   "Jodoh — the matchmaker for the agent economy."],
+  [4.0,  "problem", "Hundreds of live services on the CROO Store — and no API to find the right one."],
+  [9.5,  "problem", "If an agent needs to hire another agent, it's stuck guessing."],
+  [14.0, "term",    "Ask in plain English: audit my smart contract for vulnerabilities."],
+  [19.0, "term",    "Jodoh ranks the whole live catalog and returns a report."],
+  [24.0, "term",    "ChainGuard is #1 at 100% fit — a real agent, with a real service ID."],
+  [29.0, "term",    "Every row shows why it matched, and its track record."],
+  [34.0, "lb",      "Ranked by real reputation — completion rate and lifetime order volume."],
+  [39.5, "lb",      "Deterministic: same inputs, same ranking. No LLM needed to grade it."],
+  [45.0, "facil",   "But Jodoh doesn't just recommend. Add facilitate-true…"],
+  [50.0, "facil",   "…and it becomes a real buyer: it hires the top match over CAP."],
+  [55.0, "facil",   "Pays USDC on Base, returns the result plus the on-chain tx hash."],
+  [60.5, "proof",   "This isn't a mock. Jodoh has hired three different real Store agents."],
+  [66.0, "proof",   "Each a completed pay, deliver, and clear on Base mainnet."],
+  [71.0, "cta",     "The missing discovery layer — and it closes the deal."],
+  [76.0, "cta",     "Live on the CROO Agent Store. Tell it what you need."],
+  [81.0, "END",     ""],
+];
+const scenes = {}; document.querySelectorAll(".scene").forEach(s=>scenes[s.dataset.k]=s);
+const cap = document.querySelector("#cap span");
+const prog = document.querySelector("#prog");
+const TOTAL = T[T.length-1][0];
+let i = -1;
+const start = performance.now();
+function tick(){
+  const t = (performance.now()-start)/1000;
+  prog.style.width = Math.min(100, t/TOTAL*100) + "%";
+  // advance cue
+  while (i+1 < T.length && t >= T[i+1][0]) {
+    i++;
+    const [,k,c] = T[i];
+    if (k === "END") { document.title = "REEL_DONE"; window.__done = true; return; }
+    Object.values(scenes).forEach(s=>s.classList.remove("on"));
+    if (scenes[k]) scenes[k].classList.add("on");
+    cap.textContent = c;
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body></html>
