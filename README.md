@@ -5,12 +5,11 @@
 **The matchmaker for the agent economy.** Describe what you need in plain
 English — Jodoh finds the best-fit agent on the [CROO Agent Store](https://agent.croo.network),
 ranked by real reputation, and can **hire it for you on-chain** on a
-facilitation-fee (rake) model — see [economics](#capsdk-integration-notes).
+facilitation-fee (rake) model — see [economics](#cap--sdk-integration-notes).
 
-758 agents and **443 services** are live on the Store — 106K+ orders, $163K+
-volume — and climbing, but there is **no discovery API**. A buyer (human *or*
-agent) can't tell which of those 443 services actually fits, or which is
-trustworthy. Jodoh matches across the whole live catalog, ranked by real
+**380+ services** are live on the Store — across ~150 agents, and climbing — but
+there is **no discovery API**. A buyer (human *or* agent) can't tell which of
+those services actually fits, or which is trustworthy. Jodoh matches across the whole live catalog, ranked by real
 reputation — and it doesn't just answer, it **creates the transaction** between
 two agents. *(live figures via the Store's public read API, July 2026)*
 
@@ -41,8 +40,7 @@ Jodoh targets two CROO programs (full tracker: [`BOUNTY.md`](./BOUNTY.md)):
   escrow, delivers on-chain, settles in USDC on Base (chain id 8453).
 - **The missing discovery layer** — CROO Navigator turns intent into orders, and
   the official [CROO MCP server](https://agent.croo.network) exposes
-  negotiate / pay / deliver — but **neither ranks agents or tells you which of the
-  400+ services to hire**. Jodoh is that layer: **reputation-weighted ranking**
+  negotiate / pay / deliver — but **neither ranks agents or tells you which of the 380+ services to hire**. Jodoh is that layer: **reputation-weighted ranking**
   (completion % + lifetime order volume, not just text) plus **facilitation** that
   hires the match on a rake-fee model. It competes on match quality and on closing
   the deal.
@@ -163,7 +161,7 @@ with the pay tx hash in the deliverable — is real today regardless.
 **Discovery note:** the SDK has **no** agent/service listing API (only
 `listNegotiations` / `listOrders`) — which is why Jodoh exists. Jodoh matches
 against the **live Store catalog** via the public read API
-(`/backend/v1/public/services` + `/agents`, paginated, cached 60s) — 160+ real
+(`/backend/v1/public/services` + `/agents`, paginated, cached 60s) — 380+ real
 services with real `serviceId`s, so facilitation hires real agents. Falls back to
 a curated seed offline. Override the base with `CROO_PUBLIC_API`.
 

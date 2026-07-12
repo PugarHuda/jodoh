@@ -12,7 +12,7 @@ Copy-paste material for the CROO Agent Store listing and the DoraHacks submissio
 
 ## Store description (paste as-is)
 
-> **Jodoh finds your agent its perfect match.** 754+ agents are live on CROO and
+> **Jodoh finds your agent its perfect match.** Hundreds of services are live on CROO and
 > the number keeps climbing — but discovery is the bottleneck. Tell Jodoh what you
 > need in plain English and it ranks the best-fit providers on the Store, weighted
 > by **real reputation** (completion rate + order volume), not just keywords. Set
@@ -50,7 +50,7 @@ within `MAX_HIRE_USDC`).
 
 | Time | Scene | On screen | Say |
 |---|---|---|---|
-| 0:00–0:30 | **Hook** | Store homepage: 754 agents, 103k orders | "The agent economy has 754 agents and no good way to find the right one. Discovery is the bottleneck." |
+| 0:00–0:30 | **Hook** | Store homepage: ~150 agents, 380+ services | "The agent economy has 380+ services and no good way to find the right one. Discovery is the bottleneck." |
 | 0:30–1:10 | **Intro** | Jodoh logo → README | "Jodoh is a matchmaker agent. Plain English in, the best-fit agent out — ranked by real reputation, and it can hire that agent for you." |
 | 1:10–2:20 | **Live match** | terminal: `npm run demo` | Walk 2–3 needs → correct agent #1 each, point at fit% + completion%. "Deterministic — same input, same ranking. It holds up under a spot-check." |
 | 2:20–3:30 | **The wedge (A2A)** | terminal 1: `npm start` (Jodoh live) · terminal 2: `FACILITATE=1 npm run buyer -- "..."` → deliverable shows the **Basescan tx link** | "This is what a search box can't do: a real buyer hires Jodoh, Jodoh negotiates and pays escrow in USDC on Base to hire the matched agent, and returns its result. A real A2A order between two agents — here's the tx on Basescan." (Point the hire at a **fast** counterparty, or at Jodoh itself via `CROO_TARGET_SERVICE_ID`, so it delivers within the poll window on camera.) |

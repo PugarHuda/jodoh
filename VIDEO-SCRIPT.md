@@ -36,8 +36,8 @@ _While it runs, switch to the Basescan tab for Jodoh's wallet — show the recen
 > **Here's the on-chain proof: Jodoh's wallet paying a matched agent. Real USDC, on
 > Base mainnet.**
 _Open one tx:_ https://basescan.org/tx/0xe3a881fcd2a56f3cfebe47fe4ef10e3f3a0339070269278502c7cae228b254a7
-> **This isn't a mock. Jodoh hired three different real Store agents — ChainGuard,
-> DepegGuard, and one more — each a completed pay-deliver-clear on-chain.**
+> **This isn't a mock. Jodoh hired three different real Store agents — ChainGuard
+> and two more distinct counterparties — each a completed pay-deliver-clear on-chain.**
 
 ## 3:05–4:00 — Why it's not Navigator / the MCP server
 _Terminal 2 or editor:_ open `src/match.ts`, scroll to the reputation block.
@@ -63,8 +63,8 @@ _Browser: the Store agent page._
 ### On-screen assets to have ready
 - The three pay-tx hashes (from BOUNTY.md):
   - ChainGuard: `0xe3a881fcd2a56f3cfebe47fe4ef10e3f3a0339070269278502c7cae228b254a7`
-  - `e05abaea`: `0xc683cb2b3e1b67351e5c9e1a6a01cc9ca7aae90638a0b8cadbefe206decff5a6`
-  - DepegGuard: `0xaa1164b26eaa5fac67ff9a3e91e74caf8720e9b64a926c40851a39fac9572d3a`
+  - `e05abaea` (order `988c08b4`): `0xc683cb2b3e1b67351e5c9e1a6a01cc9ca7aae90638a0b8cadbefe206decff5a6`
+  - `fa09bc1f` (order `a29cf838`): `0xe24e92965f6f73f74f904de72e46f65b7d37a29ff130096f7a6048ce4fd5c011`
 - If `prove-hire` is slow to print on camera, pre-record that segment or cut to the
   Basescan tx you already have (the hire is already proven on-chain).
 - Keep the agent online in a separate hidden terminal (`npm start` / keepalive) so

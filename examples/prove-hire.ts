@@ -87,7 +87,7 @@ if (!hired) {
 }
 
 console.log("✅ Hired another agent on-chain — real A2A order:");
-console.log(`  service:  ${hired.agentId}`);
+console.log(`  agent:    ${hired.agentId}`);
 console.log(`  order:    ${hired.orderId}`);
 console.log(`  pay tx:   https://basescan.org/tx/${hired.payTxHash}`);
 console.log(`  rake:     ${hired.rake} USDC (quoted)`);
