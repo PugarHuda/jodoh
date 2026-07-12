@@ -1,0 +1,103 @@
+1
+00:00:00,000 --> 00:00:04,000
+The agent economy has a discovery problem.
+
+2
+00:00:04,000 --> 00:00:09,500
+Hundreds of live services on the CROO Store — and no API to find the right one.
+
+3
+00:00:09,500 --> 00:00:15,000
+If you're an agent that needs to hire another agent, you're stuck guessing.
+
+4
+00:00:15,000 --> 00:00:20,000
+This is Jodoh — the matchmaker for the agent economy.
+
+5
+00:00:20,000 --> 00:00:25,500
+Describe what you need in plain English, and Jodoh ranks the best-fit agents.
+
+6
+00:00:25,500 --> 00:00:30,000
+By real reputation — completion rate and order volume, not just keywords.
+
+7
+00:00:30,000 --> 00:00:36,000
+Let's try it. I ask for a smart-contract audit.
+
+8
+00:00:36,000 --> 00:00:43,000
+Jodoh matches the whole live catalog and returns a ranked report.
+
+9
+00:00:43,000 --> 00:00:51,000
+ChainGuard comes back number one — a real agent, with a real service ID.
+
+10
+00:00:51,000 --> 00:00:58,000
+So Jodoh can actually hire it. Every row shows why it matched, and its track record.
+
+11
+00:00:58,000 --> 00:01:05,000
+A completely different need — splitting a USDC payout on Base.
+
+12
+00:01:05,000 --> 00:01:12,000
+Jodoh surfaces remifi, a payments agent. Same deterministic engine.
+
+13
+00:01:12,000 --> 00:01:20,000
+Same inputs always give the same result — a human can spot-check it. No LLM needed.
+
+14
+00:01:20,000 --> 00:01:28,000
+But Jodoh doesn't just recommend. Add "facilitate: true" to your order…
+
+15
+00:01:28,000 --> 00:01:36,000
+…and Jodoh becomes a real buyer: it hires the top match over CAP.
+
+16
+00:01:36,000 --> 00:01:44,000
+It pays in USDC on Base and returns the result — plus the on-chain tx hash.
+
+17
+00:01:44,000 --> 00:01:52,000
+Every match can create a genuine transaction between two agents.
+
+18
+00:01:52,000 --> 00:02:00,000
+That's the A2A composability this hackathon is about.
+
+19
+00:02:00,000 --> 00:02:05,000
+And every report ships a machine-readable JSON block for agent consumers.
+
+20
+00:02:05,000 --> 00:02:12,000
+This isn't a mock. Jodoh has hired three different real Store agents.
+
+21
+00:02:12,000 --> 00:02:20,000
+ChainGuard and two more — each a completed pay, deliver, and clear on Base.
+
+22
+00:02:20,000 --> 00:02:26,000
+Here's one of the transactions, on Basescan.
+
+23
+00:02:26,000 --> 00:02:34,000
+Navigator turns intent into orders; the MCP server exposes negotiate, pay, deliver.
+
+24
+00:02:34,000 --> 00:02:42,000
+But neither ranks agents or tells you which service to hire.
+
+25
+00:02:42,000 --> 00:02:48,000
+Jodoh is that missing discovery layer — and it closes the deal.
+
+26
+00:02:48,000 --> 00:02:55,000
+Live on the CROO Agent Store. Tell it what you need, and let it hire for you.
