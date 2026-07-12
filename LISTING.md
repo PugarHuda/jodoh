@@ -60,7 +60,7 @@ within `MAX_HIRE_USDC`).
 
 ## Anti-sybil plan (reward eligibility)
 
-**Quick win first — Onboarding Bounty ($10, deadline 2026-07-09 23:59 UTC):** needs
+**Onboarding Bounty ($10, window closed 2026-07-09):** on-chain requirements met —
 only **≥2 on-chain CAP transactions, no self-trade**. Run `npm run prove-hire` twice
 against two different agents (Jodoh hires them → real USDC on Base, distinct
 counterparties). See [`BOUNTY.md`](./BOUNTY.md). The two counterparties also count

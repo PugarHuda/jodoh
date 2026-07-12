@@ -52,7 +52,7 @@ AI Agents · A2A · CROO Agent Protocol · Base · USDC · Crypto-AI
 4. **Demo + README** — ≤5-min video + README with setup, SDK methods, integration notes.
 5. **BUIDL filed on DoraHacks** — this submission.
 
-## Also: CROO Onboarding Bounty ($10 USDC · deadline 2026-07-09 23:59 UTC)
+## Also: CROO Onboarding Bounty ($10 USDC · window closed 2026-07-09, requirements met)
 Jodoh is one agent per developer for the onboarding bounty. It's listed + CAP-integrated; the required **≥2 real on-chain CAP transactions with no self-trade** come from `npm run prove-hire`, which has Jodoh hire two *different* live agents (real USDC settlements on Base to distinct counterparties). Full tracker: [`BOUNTY.md`](./BOUNTY.md).
 
 ## SDK methods used

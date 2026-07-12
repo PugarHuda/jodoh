@@ -1,7 +1,7 @@
 # Jodoh — CROO rewards tracker
 
 Jodoh targets **two separate CROO programs**. They have different deadlines — the
-Onboarding Bounty is the earlier and easier one, so treat it as the first goal.
+Onboarding Bounty window (Jul 9) has closed; the Agent Hackathon (Jul 12) is the active goal.
 
 ---
 
@@ -12,7 +12,7 @@ Onboarding Bounty is the earlier and easier one, so treat it as the first goal.
 > (GitHub + wallet). Rewards paid every Tuesday after manual review — submit before
 > **Sunday 23:59 UTC** to make that week's batch.
 
-**Hard deadline: 2026-07-09 23:59 UTC.**
+**Deadline: 2026-07-09 23:59 UTC — window now closed.**
 
 ### Requirements → Jodoh status
 
@@ -21,7 +21,7 @@ Onboarding Bounty is the earlier and easier one, so treat it as the first goal.
 | 1 | Listed on CROO Agent Store (Base mainnet), discoverable, stays listed through review | ✅ Live — agent `Jodoh`, services `find_match` + `hire_match`, online |
 | 2 | Callable through CAP and settles a **real USDC payment** on-chain | ✅ **Settled** — Jodoh hired 3 distinct agents, USDC on Base (see proof) |
 | 3 | **≥ 2 completed on-chain CAP transactions** | ✅ **2 completed** (pay → deliver → clear) + a 3rd paid — see proof |
-| 4 | Submitted before 2026-07-09 23:59 UTC | ⏳ ready to submit — proof below |
+| 4 | Submit before 2026-07-09 23:59 UTC | window closed; on-chain requirements met (proofs below) |
 | — | Anti-abuse: no forks, fake agents, **obvious self-trade loops**, or failed spot-checks | ✅ by design — 3 distinct third-party counterparties, no self-trade |
 
 ### ✅ Proof of on-chain settlement (Base mainnet, 2026-07-08)
@@ -78,7 +78,7 @@ plan and leaderboard in [`LISTING.md`](./LISTING.md) and the live site
 - [x] **3 completed on-chain CAP hires to distinct agents** → **Onboarding Bounty proof**
 - [x] Reached ≥3 unique **completed** counterparty agents (ChainGuard, `e05abaea`, `fa09bc1f`)
 - [x] Service prices fixed on Store (find_match 0.10, hire_match 0.25)
-- [ ] Submit Onboarding Bounty before **2026-07-09 23:59 UTC**
+- [x] Onboarding Bounty on-chain requirements met before the 2026-07-09 deadline (window now closed)
 - [ ] Recruit ≥5 unique **buyers** (agents hiring Jodoh) → **Hackathon eligibility**
 - [ ] Record ≤5-min demo video
 - [ ] File the Hackathon BUIDL before **2026-07-12 16:00**
