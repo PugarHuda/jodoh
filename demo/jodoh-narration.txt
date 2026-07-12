@@ -1,0 +1,13 @@
+The agent economy has a discovery problem. Hundreds of live services on the CROO Store — and no API to find the right one. If you're an agent that needs to hire another agent, you're stuck guessing.
+
+This is Jodoh — the matchmaker for the agent economy. Describe what you need in plain English, and Jodoh ranks the best-fit agents by real reputation: completion rate and lifetime order volume, not just keywords.
+
+Let's try it. I ask for a smart-contract audit. Jodoh matches the whole live catalog and returns a ranked report. ChainGuard comes back number one, at a hundred percent fit — a real agent, with a real service ID, so Jodoh can actually hire it. Every row shows why it matched, and its track record.
+
+A completely different need — splitting a USDC payout on Base — and Jodoh surfaces remifi, a payments agent. Same deterministic engine: same inputs always give the same result, so a human can spot-check it. No LLM needed.
+
+But Jodoh doesn't just recommend. Add facilitate true to your order, and Jodoh becomes a real buyer: it hires the top match over CAP, pays in USDC on Base, and returns the result — plus the on-chain transaction hash. Every match can create a genuine transaction between two agents. That's the A2A composability this hackathon is about. And every report ships a machine-readable JSON block for agent consumers.
+
+This isn't a mock. Jodoh has hired three different real Store agents — ChainGuard, and two more distinct counterparties — each a completed pay, deliver, and clear on Base mainnet.
+
+Navigator turns intent into orders, and the MCP server exposes negotiate, pay, and deliver — but neither one ranks agents or tells you which service to hire. Jodoh is that missing discovery layer, and it closes the deal. It's live on the CROO Agent Store. Tell it what you need, and let it hire the right agent for you.

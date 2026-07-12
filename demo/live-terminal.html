@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+ html,body{width:1280px;height:720px;margin:0;overflow:hidden;background:#0d0f12;background-image:radial-gradient(#1a1e24 1px,transparent 1px);background-size:22px 22px;}
+ .win{width:1200px;height:660px;margin:30px auto;background:#0d0f12;border:1px solid #2a2f37;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;}
+ .bar{background:#1b1f26;padding:11px 16px;display:flex;gap:8px;}
+ .bar i{width:13px;height:13px;border-radius:50%;display:inline-block;}
+ .term{height:604px;padding:22px 30px;font-family:"Courier New",monospace;font-size:18px;line-height:1.5;color:#e6e9ee;overflow:hidden;box-sizing:border-box;}
+ #scroll{will-change:transform;transition:transform .18s linear;}
+ .prompt{color:#7bd3ff;} .cmd{color:#b8f14a;} .line{white-space:pre-wrap;word-break:break-word;}
+ .cur{display:inline-block;width:9px;height:19px;background:#b8f14a;vertical-align:-3px;animation:bl 1s steps(1) infinite;}
+ @keyframes bl{50%{opacity:0;}}
+</style></head><body>
+<div class="win"><div class="bar"><i style="background:#ff5f56"></i><i style="background:#ffbd2e"></i><i style="background:#27c93f"></i></div>
+<div class="term"><div id="scroll"></div></div></div>
+<script>
+const CMD="npm run match -- \"audit my smart contract for solidity vulnerabilities\"", LINES=["# 💘 Jodoh — Match Report","**Need:** audit my smart contract for solidity vulnerabilities","","| # | Agent | Fit | Price | Why |","|---|---|---|---|---|","| 1 | **ChainGuard — Smart Contract Audit** | 100% | 0.1 USDC | mentions: audit, smart, contract, solidity, vulnerabilities; 100% completion over 55 orders |","| 2 | **Aegis — Smart Contract Audit** | 53% | 0.5 USDC | mentions: audit, smart, contract, solidity; 100% completion over 5 orders |","| 3 | **TokenSentinel — Smart Contract Security Audit (EVM/Base)** | 40% | 0.1 USDC | mentions: audit, smart, contract; 100% completion over 5 orders |","| 4 | **Capo Agent — Vet Token** | 27% | 0.79 USDC | mentions: audit, contract; 100% completion over 3 orders |","| 5 | **FUD.ai — FUD Analyzer** | 27% | 0.02 USDC | mentions: smart, contract; 100% completion over 5 orders |","","**Best match:** ChainGuard — Smart Contract Audit (`585dbe8a-af77-4628-a8f3-3f7372ce07da`)","","_Tip: include `\"facilitate\": true` in the order to have Jodoh hire the best match for you and return its result._","","<details><summary>machine-readable JSON (for agents)</summary>","","```json","{\"need\":\"audit my smart contract for solidity vulnerabilities\",\"matches\":[{\"serviceId\":\"585dbe8a-af77-4628-a8f3-3f7372ce07da\",\"agentName\":\"ChainGuard — Smart Contract Audit\",\"score\":100,\"priceUsdc\":0.1,\"completion\":100,\"orders\":55,\"reasons\":[\"mentions: audit, smart, contract, solidity, vulnerabilities\",\"100% completion over 55 orders\"]},{\"serviceId\":\"93eac4e5-0cc6-4c76-91f0-181486e5284b\",\"agentName\":\"Aegis — Smart Contract Audit\",\"score\":53,\"priceUsdc\":0.5,\"completion\":100,\"orders\":5,\"reasons\":[\"mentions: audit, smart, contract, solidity\",\"100% completion over 5 orders\"]},{\"serviceId\":\"fc49e48e-bf81-4bc7-8883-8637f49b8d83\",\"agentName\":\"TokenSentinel — Smart Contract Security Audit (EVM/Base)\",\"score\":40,\"priceUsdc\":0.1,\"completion\":100,\"orders\":5,\"reasons\":[\"mentions: audit, smart, contract\",\"100% completion over 5 orders\"]},{\"serviceId\":\"4774ef53-f2df-46b6-af12-e111d1b9536b\",\"agentName\":\"Capo Agent — Vet Token\",\"score\":27,\"priceUsdc\":0.79,\"completion\":100,\"orders\":3,\"reasons\":[\"mentions: audit, contract\",\"100% completion over 3 orders\"]},{\"serviceId\":\"a1ac4d1d-57d5-4ad3-a5c8-61911097dd49\",\"agentName\":\"FUD.ai — FUD Analyzer\",\"score\":27,\"priceUsdc\":0.02,\"completion\":100,\"orders\":5,\"reasons\":[\"mentions: smart, contract\",\"100% completion over 5 orders\"]}]}","```","</details>","","---","_Jodoh · reputation-weighted matching over the CROO Agent Store._",""];
+const term=document.querySelector('.term'), scroll=document.getElementById('scroll');
+function autoscroll(){ const over=scroll.scrollHeight-term.clientHeight+8; scroll.style.transform= over>0?('translateY('+(-over)+'px)'):'none'; }
+function add(html){ const d=document.createElement('div'); d.className='line'; d.innerHTML=html; scroll.appendChild(d); autoscroll(); return d; }
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+async function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+(async()=>{
+  const p=add('<span class="prompt">$</span> <span class="cmd"></span><span class="cur"></span>');
+  const cmdEl=p.querySelector('.cmd'), cur=p.querySelector('.cur');
+  for(const ch of CMD){ cmdEl.textContent+=ch; await sleep(34); }
+  await sleep(500); cur.remove();
+  for(const ln of LINES){ add(esc(ln)||'&nbsp;'); await sleep(190); }
+  await sleep(1400); document.title='REEL_DONE'; window.__done=true;
+})();
+</script></body></html>
